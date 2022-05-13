@@ -2,6 +2,10 @@
 
 FLAD (a Federated Learning approach to DDoS Attack Detection) is an adaptive Federated Learning (FL) approach for training feed-forward neural networks, that implements a mechanism to monitor the classiﬁcation accuracy of the global model on the clients’ validations sets, without requiring any exchange of data. Thanks to this mechanism, FLAD can estimate the performance of the aggregated model and dynamically tune the FL process by assigning more computation to those clients whose attacks proﬁles are harder to learn.
 
+More details on the architecture of FLAD and its performance in terms of detection accuracy and execution time are available in the following research paper:
+
+R. Doriguzzi-Corin and D. Siracusa, "FLAD: Adaptive Federated Learning for DDoS Attack Detection," in arXiv, 2022.
+
 
 ## Installation
 
@@ -142,6 +146,14 @@ python3 flad_main.py --train_federated /path_to/dataset_folder/ --retraining fed
 ```
 
 The results of the process are saved in ```csv``` format in a folder called ```log```, which is automatically created within the code's main folder when the training process is executed for the first time.
+
+
+
+## Acknowledgements
+
+If you are using FLAD's code for a scientific research, please cite the related paper in your manuscript as follows:
+
+*R. Doriguzzi-Corin and D. Siracusa, "FLAD: Adaptive Federated Learning for DDoS Attack Detection," in arXiv, 2022.*
 
 
 ## License
