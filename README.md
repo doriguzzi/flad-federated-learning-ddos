@@ -52,32 +52,7 @@ For the sake of simplicity, we omit the command prompt ```(python39)$``` in the 
 
 FLAD has been tested with a Multi Layer Perceptron (MLP) model consisting of two fully connected hidden layers of 32 neurons each. The output layer includes a single neuron whose value represents the predicted probability of a traffic flow of being malicious (DDoS). The input is an array-like  representation of a traffic flow, the same implemented in LUCID. For this reason, FLAD adopts the same traffic prepocessing tool of LUCID, including the support to the CIC-DDoS2019 DDoS dataset from the University of New Brunswick (UNB) (https://www.unb.ca/cic/datasets/index.html). Follows the same procedure for traffic pre-processing presented in the LUCID repository (https://github.com/doriguzzi/lucid-ddos).
 
-FLAD requires a labelled dataset, including the traffic traces in the format of ```pcap``` files. The traffic pre-processing functions are implemented in the ```lucid_dataset_parser.py``` Python script. It currently supports three DDoS datasets from the University of New Brunswick (UNB) (https://www.unb.ca/cic/datasets/index.html): CIC-IDS2017, CSE-CIC-IDS2018, CIC-DDoS2019, plus a custom dataset containing a SYN Flood DDoS attack (SYN2020). FLAD has been tested on the CIC-DDoS2019 dataset.
-
-With term *support*, we mean the capability of the script to correctly label the packets and the traffic flows either as benign or DDoS. In general, this is done by parsing a file with the labels provided with the traffic traces, like in the case of the UNB datasets, or by manually indicating the IP address(es) of the attacker(s) and the IP address(es) of the victim(s) in the code. Of course, also in the latter case, the script must be tuned with the correct information of the traffic (all the attacker/victim pairs of IP addresses), as this information is very specific to the dataset and to the methodology used to generate the traffic. 
-
-Said that, ```lucid_dataset_parser.py``` includes the structures with the pairs attacker/victim of the three datasets mentioned above (CIC-IDS2017, CSE-CIC-IDS2018, CIC-DDoS2019 and SYN2020), but it can be easily extended to support other datasets by replicating the available code.
-
-For instance, the following Python dictionary provides the IP addresses of the 254 attackers and the victim involved in the custom SYN Flood attack:   
-
-```
-CUSTOM_DDOS_SYN = {'attackers': ['11.0.0.' + str(x) for x in range(1,255)],
-                      'victims': ['10.42.0.2']}
-```
-
-### Command options
-
-The following parameters can be specified when using ```lucid_dataset_parser.py```:
-
-- ```-d```, ```--dataset_folder```: Folder with the dataset
-- ```-o```, ```--output_folder ```: Folder where  the scripts saves the output. The dataset folder is used when this option is not used
-- ```-f```, ```--traffic_type ```: Type of flow to process (all, benign, ddos)
-- ```-p```, ```--preprocess_folder ```: Folder containing the intermediate files ```*.data```
-- ```-t```, ```--dataset_type ```: Type of the dataset. Available options are: IDS2017, IDS2018, DOS2019, SYN2020
-- ```-n```, ```--packets_per_flow ```: Maximum number of packets in a sample
-- ```-w```, ```--time_window ```: Length of the time window (in seconds)
-- ```-i```, ```--dataset_id ```: String to append to the names of output files
-
+FLAD requires a labelled dataset, including the traffic traces in the format of ```pcap``` files. The traffic pre-processing functions are implemented in the ```lucid_dataset_parser.py``` Python script. It currently supports three DDoS datasets from the University of New Brunswick (UNB) (https://www.unb.ca/cic/datasets/index.html): CIC-IDS2017, CSE-CIC-IDS2018, CIC-DDoS2019, plus a custom dataset containing a SYN Flood DDoS attack (SYN2020). FLAD has been tested on the CIC-DDoS2019 dataset and the results are reported in the paper referenced above. More information on this traffic pre-processing tool can be found in the LUCID documentation.
 
 
 ### First step
