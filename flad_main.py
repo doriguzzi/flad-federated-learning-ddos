@@ -14,9 +14,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import sys
 from flad_training import *
-from lucid_dataset_parser import *
-import numpy as np
+import argparse
 
 def main(argv):
     help_string = 'Usage: python3 flad_main.py --train_federated <dataset_folder> --retraining flad'
