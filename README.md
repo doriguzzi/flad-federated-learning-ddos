@@ -11,7 +11,7 @@ The code with all the experiments presented in the paper is available in branch 
 
 ## Installation
 
-The current FLAD's Framework is implemented in Python v3.9 with Keras and Tensorflow 2.7. It inherits the traffic pre-processing tool from the LUCID project (https://github.com/doriguzzi/lucid-ddos), also implemented in Python v3.9 with the support of Numpy and Pyshark libraries. 
+The current FLAD's Framework is implemented in Python v3.9 with Keras and Tensorflow 2.X. It inherits the traffic pre-processing tool from the LUCID project (https://github.com/doriguzzi/lucid-ddos), also implemented in Python v3.9 with the support of Numpy and Pyshark libraries. 
 
 FLAD requires the installation of a number of Python tools and libraries. This can be done by using the ```conda``` software environment (https://docs.conda.io/projects/conda/en/latest/).
 We suggest the installation of ```miniconda```, a light version of ```conda```. ```miniconda``` is available for MS Windows, MacOSX and Linux and can be installed by following the guidelines available at https://docs.conda.io/en/latest/miniconda.html#. 
