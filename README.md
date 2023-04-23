@@ -104,8 +104,8 @@ FLAD's main script is ```flad_main.py```. The script implements a range of test 
 To execute the federated training process, the following parameters can be specified when using ```flad_main.py```:
 
 - ```-t```, ```--train_federated```: Starts the federated training process and specifies the folder with the dataset. The folder must be organised in subfolders, one for each client.
-- ```-e```, ```--full_training ```: Performs the federated training across all the clients, either with the ```flad``` or with the ```fedavg``` algorithm.
-- ```-r```, ```--retraining ```: Performs a progressive federated training across the clients, either with the ```flad``` or with the ```fedavg``` algorithm. It starts with only two clients (hence, with only two attack types), and progressively adds a new attack type every time convergence is achieved.
+- ```-ft```, ```--full_training ```: Performs the federated training across all the clients, either with the ```flad``` or with the ```fedavg``` algorithm.
+- ```-rt```, ```--retraining ```: Performs a progressive federated training across the clients, either with the ```flad``` or with the ```fedavg``` algorithm. It starts with only two clients (hence, with only two attack types), and progressively adds a new attack type every time convergence is achieved.
 
 ### The training process
 

@@ -25,7 +25,7 @@ def main(argv):
         description='FLAD, Adaptive Federated Learning for DDoS Attack Detection',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-    parser.add_argument('-tf', '--train_federated', nargs='?', type=str,
+    parser.add_argument('-t', '--train_federated', nargs='?', type=str,
                         help='Start the federated training process')
 
     parser.add_argument('-e', '--epochs', nargs='+',default=None, type=int,
@@ -45,7 +45,7 @@ def main(argv):
 
     parser.add_argument('-ft', '--full_training', default="flad", type=str, nargs='+',
                         help='Federated training mode. Available options are (multiple choices are permitted): flad, fedavg')
-    parser.add_argument('-fm', '--retraining', default="flad", type=str, nargs='+',
+    parser.add_argument('-rt', '--retraining', default="flad", type=str, nargs='+',
                         help='Federated training mode. Available options are (multiple choices are permitted): flad, fedavg')
 
 
