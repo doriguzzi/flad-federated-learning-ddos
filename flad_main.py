@@ -30,12 +30,19 @@ def main(argv):
 
     parser.add_argument('-o', '--output_folder', nargs='?', type=str, default="./log",
                         help='Folder which stores the training/testing results (default: ./log ')
+    
+    parser.add_argument('-e', '--local_epochs', nargs='?', type=int, default=0,
+                        help='Number of local epochs (default: 0, which means adaptive')
 
 
     args = parser.parse_args()
 
     if os.path.isdir(args.output_folder) == False:
         os.mkdir(args.output_folder)
+
+    epochs_list = ['auto']
+    if args.local_epochs >= 1:
+        epochs_list = [int(args.local_epochs)]
 
     if args.train_federated is not None:
         subfolders = glob.glob(args.train_federated + "/*/")
@@ -63,7 +70,7 @@ def main(argv):
 
         # test with progressive introduction of new attacks
         FederatedTrain(clients, 'mlp', args.output_folder, time_window, max_flow_len, dataset_name,
-                        epochs_list=['auto'], steps_list=['auto'], training_clients_list=["flad"], weighted=False,
+                        epochs_list=epochs_list, steps_list=['auto'], training_clients_list=["flad"], weighted=False,
                         optimizer="SGD", nr_experiments=EXPERIMENTS)
 
 

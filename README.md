@@ -46,22 +46,22 @@ Pyshark is just Python wrapper for tshark, meaning that ```tshark``` must be als
 sudo apt install tshark
 ```
 
-Please note that the current parser code works with ```tshark``` **version 3.2.13 or lower**. Issues have been reported when using newest releases such as 3.4.X.
+Please note that the current parser code works with ```tshark``` **version 3.2.13 or lower**. Issues have been reported when using newer releases such as 3.4.X.
 
 For the sake of simplicity, we omit the command prompt ```(python39)$``` in the following example commands in this README.   ```(python39)$``` indicates that we are working inside the ```python39``` execution environment, which provides all the required libraries and tools. If the command prompt is not visible, re-activate the environment as explained above.
 
 ## Traffic pre-processing
 
-FLAD has been tested with a Multi Layer Perceptron (MLP) model consisting of two fully connected hidden layers of 32 neurons each. The output layer includes a single neuron whose value represents the predicted probability of a traffic flow of being malicious (DDoS). The input is an array-like  representation of a traffic flow, the same implemented in LUCID. For this reason, FLAD adopts the same traffic prepocessing tool of LUCID, including the support to the CIC-DDoS2019 DDoS dataset from the University of New Brunswick (UNB) (https://www.unb.ca/cic/datasets/index.html). Follows the same procedure for traffic pre-processing presented in the LUCID repository (https://github.com/doriguzzi/lucid-ddos).
+FLAD has been tested with a Multi Layer Perceptron (MLP) model consisting of two fully connected hidden layers of 32 neurons each. The output layer includes a single neuron whose value represents the predicted probability of a traffic flow of being malicious (DDoS). The input is an array-like representation of a traffic flow, the same implemented in LUCID. For this reason, FLAD adopts the same traffic preprocessing tool of LUCID, including support to the CIC-DDoS2019 DDoS dataset from the University of New Brunswick (UNB) (https://www.unb.ca/cic/datasets/index.html). Follows the same procedure for traffic pre-processing presented in the LUCID repository (https://github.com/doriguzzi/lucid-ddos).
 
 FLAD requires a labelled dataset, including the traffic traces in the format of ```pcap``` files. The traffic pre-processing functions are implemented in the ```lucid_dataset_parser.py``` Python script. It currently supports three DDoS datasets from the University of New Brunswick (UNB) (https://www.unb.ca/cic/datasets/index.html): CIC-IDS2017, CSE-CIC-IDS2018, CIC-DDoS2019, plus a custom dataset containing a SYN Flood DDoS attack (SYN2020). FLAD has been tested on the CIC-DDoS2019 dataset and the results are reported in the paper referenced above. More information on this traffic pre-processing tool can be found in the LUCID documentation.
 
 
 ### First step
 
-The traffic pre-processing operation comprises two steps. The first parses the file with the labels (if needed) all extracts the features from the packets of all the ```pcap``` files contained in the source directory. The features are grouped in flows, where a flow is a set of features from packets with the same source IP, source UDP/TCP port, destination IP and destination UDP/TCP port and protocol. Flows are bi-directional, therefore, packet (srcIP,srcPort,dstIP,dstPort,proto) belongs to the same flow of (dstIP,dstPort,srcIP,srcPort,proto). The result is a set of intermediate binary files with extension ```.data```.
+The traffic pre-processing operation comprises two steps. The first parses the file with the labels (if needed) all extracts the features from the packets of all the ```pcap``` files contained in the source directory. The features are grouped into flows, where a flow is a set of features from packets with the same source IP, source UDP/TCP port, destination IP and destination UDP/TCP port and protocol. Flows are bi-directional, therefore, packet (srcIP,srcPort,dstIP,dstPort,proto) belongs to the same flow of (dstIP,dstPort,srcIP,srcPort,proto). The result is a set of intermediate binary files with extension ```.data```.
 
-This first step can be executed with command:
+This first step can be executed with the followng command:
 
 ```
 python3 lucid_dataset_parser.py --dataset_type DOS2019 --dataset_folder /path_to/dataset_folder/ --packets_per_flow 10 --dataset_id DOS2019 --traffic_type all --time_window 10
@@ -79,15 +79,18 @@ The second step loads the ```*.data``` files, merges them into a single data str
 
 Finally, three files (training, validation and test sets) are saved in *hierarchical data format* ```hdf5``` . 
 
-The second step is executed with command:
+The second step is executed with the command:
 
 ```
 python3 lucid_dataset_parser.py --preprocess_folder /path_to/dataset_folder/
 ```
 
-If option ```--output_folder``` is not used, the output will be produced in the input folder specified with option ```--preprocess_folder```.
+If the option ```--output_folder``` is not used, the output will be produced in the input folder specified with option ```--preprocess_folder```.
 
-At the end of this operation, the script prints a summary of the pre-processed dataset. In our case, with this tiny traffic traces, the result should be something like:
+At the end of this operation, the script prints a summary of the pre-processed dataset. In our case, with these tiny traffic traces, the result should be something like the following:
+```
+2022-02-18 07:05:54 | examples (tot,ben,ddos):(402,202,200) | Train/Val/Test sizes: (321,37,44) | Packets (train,val,test):(2201,252,310) | options:--preprocess_folder /path_to/dataset_folder/00-WebDDoS/ |
+```
 This means 402 samples in total (202 benign and 200 DDoS), 321 in the training set, 37 in the validation set and 44 in the test set. The output also shows the total number of packets in the dataset divided in training, validation and test sets and the options used with the script. 
 
 All the output of the ```lucid_dataset_parser.py``` script is saved within the output folder in the ```history.log``` file.
@@ -106,7 +109,10 @@ python3 flad_main.py --train_federated /path_to/dataset_folder/
 where option ```--train_federated``` (or ```-t```) is used to indicate the folder with the dataset. The folder must be organised in subfolders, one for each client, containing the local training and validation sets in ```.hdf5``` format.
 
 The final global model and the log of the training process are saved in ```h5``` and ```csv``` format respectively in a folder called ```log```, which is automatically created within the code's main folder when the training process is executed for the first time.
-A different output folder can be specified by using the option ```--output_folder``` (or ```-o```) followed by the path of the folder. If the folder does not exist, it will be automatically created.
+
+Other useful options are:
+- ```-o```, ```--output_folder```: folder where FLAD saves the final global model and the federated training log files (default: ```./log```). If the folder does not exist, it will be automatically created.
+- ```-e```, ```--local_epochs```: number of local training epochs performed by clients at every round of federated training (default: ```0```, which means adaptive).
 
 ## Acknowledgements
 
