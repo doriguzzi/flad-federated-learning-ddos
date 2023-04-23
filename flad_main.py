@@ -25,28 +25,11 @@ def main(argv):
         description='FLAD, Adaptive Federated Learning for DDoS Attack Detection',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-    parser.add_argument('-tf', '--train_federated', nargs='?', type=str,
+    parser.add_argument('-t', '--train_federated', nargs='?', type=str,
                         help='Start the federated training process')
 
-    parser.add_argument('-e', '--epochs', nargs='+',default=None, type=int,
-                        help='Training iterations')
-
-    parser.add_argument('-s', '--steps_per_epoch',default=None, type=int,
-                        help='Steps of gradient descent taken at each epoch')
-
-    parser.add_argument('-ro', '--rounds', default=0, type=int,
-                        help='Federated training iterations')
-
-    parser.add_argument('-o', '--optimizer', type=str, default="SGD",
-                        help='Optimizer (SGD, Adam)')
-
-    parser.add_argument('-of', '--output_folder', nargs='?', type=str, default="./log",
+    parser.add_argument('-o', '--output_folder', nargs='?', type=str, default="./log",
                         help='Folder which stores the training/testing results (default: ./log ')
-
-    parser.add_argument('-ft', '--full_training', default="flad", type=str, nargs='+',
-                        help='Federated training mode. Available options are (multiple choices are permitted): flad, fedavg')
-    parser.add_argument('-fm', '--retraining', default="flad", type=str, nargs='+',
-                        help='Federated training mode. Available options are (multiple choices are permitted): flad, fedavg')
 
 
     args = parser.parse_args()
@@ -79,28 +62,9 @@ def main(argv):
             exit(-1)
 
         # test with progressive introduction of new attacks
-        for test in args.full_training:
-            if test == "flad":
-                FederatedTrain(clients, 'mlp', args.output_folder, time_window, max_flow_len, dataset_name,
-                               epochs_list=['auto'], steps_list=['auto'], training_clients_list=["flad"], weighted=False,
-                               optimizer=args.optimizer, nr_experiments=EXPERIMENTS)
-            # test training a rundom subset of clients and using the mcmahan's paper paramters (E=1,5, B=50)
-            elif test == "fedavg":
-                FederatedTrain(clients, 'mlp', args.output_folder, time_window, max_flow_len, dataset_name,
-                               epochs_list=[1, 5], steps_list=[0], training_clients_list=["fedavg"], weighted=True,
-                               optimizer=args.optimizer, nr_experiments=EXPERIMENTS)
-
-        # test with progressive introduction of new attacks
-        for test in args.retraining:
-            if test == "flad":
-                FederatedReTrain(clients, 'mlp', args.output_folder, time_window, max_flow_len, dataset_name,
-                               epochs_list=None, steps_list=None, training_clients_list=["flad"], weighted=False,
-                               optimizer=args.optimizer,nr_experiments=EXPERIMENTS)
-            # test training a rundom subset of clients and using the mcmahan's paper paramters (E=1,5, B=50)
-            elif test == "fedavg":
-                FederatedReTrain(clients, 'mlp', args.output_folder, time_window, max_flow_len, dataset_name,
-                               epochs_list=[1,5], steps_list=[0], training_clients_list=["fedavg"],  weighted=True,
-                               optimizer=args.optimizer,nr_experiments=EXPERIMENTS)
+        FederatedTrain(clients, 'mlp', args.output_folder, time_window, max_flow_len, dataset_name,
+                        epochs_list=['auto'], steps_list=['auto'], training_clients_list=["flad"], weighted=False,
+                        optimizer="SGD", nr_experiments=EXPERIMENTS)
 
 
 if __name__ == "__main__":
