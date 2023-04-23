@@ -18,11 +18,8 @@ import os
 import numpy as np
 import h5py
 import glob
-import scipy.stats
 from collections import OrderedDict
 from sklearn.utils import shuffle
-import matplotlib.pyplot as plt
-import seaborn as sns
 import random as rn
 
 SEED = 0
@@ -124,108 +121,3 @@ def load_set(folder_path,set_type):
 def scale_linear_bycolumn(rawpoints, mins,maxs,high=1.0, low=0.0):
     rng = maxs - mins
     return high - (((high - low) * (maxs - rawpoints)) / rng)
-
-def count_packets_in_dataset(X_list):
-    packet_counters = []
-    for X in X_list:
-        TOT = X.sum(axis=2)
-        packet_counters.append(np.count_nonzero(TOT))
-
-    return packet_counters
-
-def mean_confidence_interval(data, confidence=0.95):
-    a = 1.0 * np.array(data)
-    n = len(a)
-    m, se = np.mean(a), scipy.stats.sem(a)
-    h = se * scipy.stats.t.ppf((1 + confidence) / 2., n-1)
-    return m, h
-
-def all_same(items):
-    return all(x == items[0] for x in items)
-
-# min/max values of features based on the nominal min/max values of the single features (as defined in the feature_list dict)
-def static_min_max(time_window=10):
-    feature_list['timestamp'][1] = time_window
-
-    min_array = np.zeros(len(feature_list))
-    max_array = np.zeros(len(feature_list))
-
-    i=0
-    for feature, value in feature_list.items():
-        min_array[i] = value[0]
-        max_array[i] = value[1]
-        i+=1
-
-    return min_array,max_array
-
-# min/max values of features based on the values in the dataset
-def find_min_max(X,time_window=10):
-    sample_len = X[0].shape[1]
-    max_array = np.zeros((1,sample_len))
-    min_array = np.full((1, sample_len),np.inf)
-
-    for feature in X:
-        temp_feature = np.vstack([max_array,feature])
-        max_array = np.amax(temp_feature,axis=0)
-        temp_feature = np.vstack([min_array, feature])
-        min_array = np.amin(temp_feature, axis=0)
-
-    # flows cannot last for more than MAX_FLOW_DURATION seconds, so they are normalized accordingly
-    max_array[0] = time_window
-    min_array[0] = 0
-
-    return min_array,max_array
-
-def normalize_and_padding(X,mins,maxs,max_flow_len,padding=True):
-    norm_X = []
-    for sample in X:
-        if sample.shape[0] > max_flow_len: # if the sample is bigger than expected, we cut the sample
-            sample = sample[:max_flow_len,...]
-        packet_nr = sample.shape[0] # number of packets in one sample
-
-        norm_sample = scale_linear_bycolumn(sample, mins, maxs, high=1.0, low=0.0)
-        np.nan_to_num(norm_sample, copy=False)  # remove NaN from the array
-        if padding == True:
-            norm_sample = np.pad(norm_sample, ((0, max_flow_len - packet_nr), (0, 0)), 'constant',constant_values=(0, 0))  # padding
-        norm_X.append(norm_sample)
-    return norm_X
-
-def padding(X,max_flow_len):
-    padded_X = []
-    for sample in X:
-        flow_nr = sample.shape[0]
-        padded_sample = np.pad(sample, ((0, max_flow_len - flow_nr), (0, 0)), 'constant',
-                              constant_values=(0, 0))  # padding
-        padded_X.append(padded_sample)
-    return padded_X
-
-
-def plot_distance_matrix(cm, attacks, features,outdir):
-    color="Blues"
-
-    xticks = features
-    plot_height = 5
-
-    # show the y labels only for the leftmost plots
-    yticks = ""
-    yticks = attacks
-    plot_width = 5.1
-
-
-    plt.figure(figsize=(plot_width, plot_height))
-    #sns.set(font_scale=1.5)
-    ax = sns.heatmap(cm, annot=True, cmap=color,fmt='.2f', xticklabels=xticks, yticklabels=yticks,cbar=False)
-    #ax.set_xticklabels(ax.get_xmajorticklabels(), fontsize=16)
-    #ax.set_yticklabels(ax.get_ymajorticklabels(), fontsize=16)
-    ax.set_xticklabels(ax.get_xticklabels(), rotation=-45, horizontalalignment='right')
-    ax.xaxis.set_ticks_position('top')
-    ax.xaxis.set_label_position('top')
-
-
-    #plt.title("JS Distance",fontsize=20)
-
-    ax.figure.tight_layout()
-
-
-    plt.savefig(outdir + "/distance_matrix.pdf")
-    print("Saving the confusion matrix...")

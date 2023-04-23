@@ -22,10 +22,10 @@ In a Linux OS, execute the following command and follows the on-screen instructi
 bash Miniconda3-latest-Linux-x86_64.sh
 ```
 
-Then create a new ```conda``` environment (called ```python39```) based on Python 3.9 and including part the required packages:
+Then create a new ```conda``` environment (called ```python39```) based on Python 3.9:
 
 ```
-conda create -n python39 python=3.9 numpy tensorflow=2.7.0 h5py lxml
+conda create -n python39 python=3.9
 ```
 
 Activate the new ```python39``` environment:
@@ -34,10 +34,11 @@ Activate the new ```python39``` environment:
 conda activate python39
 ```
 
-And finalise the installation with a few more packages:
+And configure the environment with ```tensorflow``` and a few more packages:
 
 ```
-(python39)$ pip3 install pyshark sklearn
+(python39)$ pip3 install numpy tensorflow=2.10.1 h5py lxml
+(python39)$ pip3 install pyshark scikit-learn
 ```
 Pyshark is used in the ```lucid_dataset_parser.py``` script for data pre-processing.
 Pyshark is just Python wrapper for tshark, meaning that ```tshark``` must be also installed. On an Ubuntu-based OS, use the following command:
@@ -46,7 +47,7 @@ Pyshark is just Python wrapper for tshark, meaning that ```tshark``` must be als
 sudo apt install tshark
 ```
 
-Please note that the current parser code works with ```tshark``` **version 3.2.13 or lower**. Issues have been reported when using newer releases such as 3.4.X.
+Please note that the current parser code works with ```tshark``` **version 3.2.3 or lower** or **version 3.6 or higher**. Issues have been reported when using intermediate releases such as 3.4.X.
 
 For the sake of simplicity, we omit the command prompt ```(python39)$``` in the following example commands in this README.   ```(python39)$``` indicates that we are working inside the ```python39``` execution environment, which provides all the required libraries and tools. If the command prompt is not visible, re-activate the environment as explained above.
 
