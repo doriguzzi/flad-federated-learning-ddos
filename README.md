@@ -16,10 +16,11 @@ The current FLAD's Framework is implemented in Python v3.9 with Keras and Tensor
 FLAD requires the installation of a number of Python tools and libraries. This can be done by using the ```conda``` software environment (https://docs.conda.io/projects/conda/en/latest/).
 We suggest the installation of ```miniconda```, a light version of ```conda```. ```miniconda``` is available for MS Windows, MacOSX and Linux and can be installed by following the guidelines available at https://docs.conda.io/en/latest/miniconda.html#. 
 
-In a Linux OS, execute the following command and follows the on-screen instructions:
+Execute one of the following commands (based on your operating system) and follow the on-screen instructions:
 
 ```
-bash Miniconda3-latest-Linux-x86_64.sh
+bash Miniconda3-latest-Linux-x86_64.sh (on Linux operating systems)
+bash Miniconda3-latest-MacOSX-x86_64.sh (on macOS)
 ```
 
 Then create a new ```conda``` environment (called ```python39```) based on Python 3.9:
@@ -36,9 +37,18 @@ conda activate python39
 
 And configure the environment with ```tensorflow``` and a few more packages:
 
+On Linux operating systems:
 ```
-(python39)$ pip3 install numpy tensorflow=2.10.1 h5py lxml
-(python39)$ pip3 install pyshark scikit-learn
+(python39)$ pip install tensorflow==2.7.1
+(python39)$ pip install scikit-learn h5py pyshark
+(python39)$ pip install matplotlib seaborn
+```
+
+On macOS (work with M1 CPUs as well)
+```
+(python39)$ conda install -c conda-forge tensorflow=2.7.1
+(python39)$ conda install -c conda-forge scikit-learn h5py pyshark
+(python39)$ conda install -c conda-forge matplotlib seaborn
 ```
 Pyshark is used in the ```lucid_dataset_parser.py``` script for data pre-processing.
 Pyshark is just Python wrapper for tshark, meaning that ```tshark``` must be also installed. On an Ubuntu-based OS, use the following command:
