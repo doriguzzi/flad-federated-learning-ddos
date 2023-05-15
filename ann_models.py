@@ -1,4 +1,4 @@
-# Copyright (c) 2022 @ FBK - Fondazione Bruno Kessler
+# Copyright (c) 2023 @ FBK - Fondazione Bruno Kessler
 # Author: Roberto Doriguzzi-Corin
 # Project: FLAD, Adaptive Federated Learning for DDoS Attack Detection
 #
@@ -27,10 +27,24 @@ from tensorflow.keras.models import Model, Sequential, save_model, load_model, c
 import tensorflow.keras.backend as K
 from tensorflow.keras.utils import plot_model, to_categorical
 from tensorflow._api.v2.math import reduce_sum, square
-tf.random.set_seed(SEED)
+tf.keras.utils.set_random_seed(SEED)
 K.set_image_data_format('channels_last')
-tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
-config.gpu_options.allow_growth = True  # dynamically grow the memory used on the GPU
+
+tf.config.set_visible_devices([], 'GPU')
+
+# dynamically grow the memory used on the GPU
+gpus = tf.config.experimental.list_physical_devices('GPU')
+if gpus:
+  try:
+    # Currently, memory growth needs to be the same across GPUs
+    for gpu in gpus:
+      tf.config.experimental.set_memory_growth(gpu, True)
+    logical_gpus = tf.config.experimental.list_logical_devices('GPU')
+    print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
+  except RuntimeError as e:
+    # Memory growth must be set before GPUs have been initialized
+    print(e)
+
 
 KERNELS = 256
 MLP_UNITS = 32
@@ -42,9 +56,9 @@ MAX_STEPS = 1000
 
 def compileModel(model, optimizer_type="SGD",loss='binary_crossentropy'):
     if optimizer_type == "Adam":
-        optimizer = Adam(learning_rate=0.01, beta_1=0.9, beta_2=0.999, epsilon=None, decay=0.0, amsgrad=False)
+        optimizer = Adam(learning_rate=0.01, beta_1=0.9, beta_2=0.999, epsilon=None, amsgrad=False)
     else:
-        optimizer = SGD(learning_rate=0.1, momentum=0.0, decay=0.0, nesterov=False)
+        optimizer = SGD(learning_rate=0.1, momentum=0.0, nesterov=False)
 
     model.compile(loss=loss, optimizer=optimizer,metrics=['accuracy'])
 
@@ -127,8 +141,10 @@ def init_client(subfolder, X_train, Y_train, X_val, Y_val, dataset_name, time_wi
     client = {}
     client['name'] = subfolder.strip('/').split('/')[-1] #name of the client based on the folder name
     client['folder'] = subfolder
-    client['training'] = (X_train,Y_train)
-    client['validation'] = (X_val,Y_val)
+    X_train_tensor = tf.convert_to_tensor(X_train, dtype=tf.float32)
+    client['training'] = (X_train_tensor,Y_train)
+    X_val_tensor = tf.convert_to_tensor(X_val, dtype=tf.float32)
+    client['validation'] = (X_val_tensor,Y_val)
     client['samples'] = client['training'][1].shape[0]
     client['dataset_name'] = dataset_name
     client['input_shape'] = client['training'][0].shape[1:4]
@@ -140,7 +156,9 @@ def init_client(subfolder, X_train, Y_train, X_val, Y_val, dataset_name, time_wi
     return client
 
 def reset_client(client):
-    client['f1_val'] = 0
+    client['local_model'] = None # local model trained only with local data (FLDDoS comparison)
+    client['f1_val'] = 0         # F1 Score of the current global model on the validation set
+    client['f1_val_best'] = 0    # F1 Score of the best model on the validation set
     client['loss_train'] = float('inf')
     client['loss_val'] = float('inf')
     client['epochs'] = MIN_EPOCHS

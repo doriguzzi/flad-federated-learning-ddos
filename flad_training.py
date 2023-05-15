@@ -1,4 +1,4 @@
-# Copyright (c) 2022 @ FBK - Fondazione Bruno Kessler
+# Copyright (c) 2023 @ FBK - Fondazione Bruno Kessler
 # Author: Roberto Doriguzzi-Corin
 # Project: FLAD, Adaptive Federated Learning for DDoS Attack Detection
 #
@@ -21,12 +21,17 @@ import csv
 from sklearn.metrics import f1_score
 import random
 import copy
+import gc
 
-# hyperparameters
+# General hyperparameters
 EXPERIMENTS = 10
-PATIENCE = 25
 DEFAULT_BATCH_SIZE = 50
-MAX_FEDAVG_ROUNDS = 1000
+MAX_FL_ROUNDS = 1000 
+CLIENT_FRACTION = 0.8 # Fraction of clients selected at each round for FedAvg-based approaches
+
+# FLAD hyper-parameters
+PATIENCE = 25
+
 
 def trainClientModel(model, epochs, X_train, Y_train,X_val, Y_val, dataset_folder, steps_per_epoch=None, batch_size=DEFAULT_BATCH_SIZE):
 
@@ -59,20 +64,8 @@ def trainClientModel(model, epochs, X_train, Y_train,X_val, Y_val, dataset_folde
     stats_file.close()
     return model, loss_train, loss_val, tp1-tp0
 
-# Federated training with all the attacks. For FedAvg we set a maximum number of rounds of 1000
-def  FederatedTrain(clients, model_type, output_folder, time_window, max_flow_len, dataset_name, epochs_list=None, steps_list=None, training_clients_list = None, weighted=None,optimizer='SGD',nr_experiments=EXPERIMENTS):
-    if epochs_list is None:
-        epochs_list = ['auto', 1, 5]
-    if steps_list is None:
-        steps_list = ['auto', 0]
-    if weighted is None:
-        weighted_list = [True]
-    else:
-        weighted_list = [weighted]
-
-    update_metric_list = ['f1_val']
-    if training_clients_list == None:
-        training_clients_list = ["flad","fedavg"]
+# Federated training procedure
+def  FederatedTrain(clients, model_type, output_folder, time_window, max_flow_len, dataset_name, epochs='auto', steps='auto', training_mode = 'flad', max_rounds = MAX_FL_ROUNDS, weighted=False,optimizer='SGD',nr_experiments=EXPERIMENTS):
 
     outdir = output_folder + "/federated_training-" + time.strftime("%Y%m%d-%H%M%S") + "/"
     if os.path.isdir(outdir) == False:
@@ -81,10 +74,10 @@ def  FederatedTrain(clients, model_type, output_folder, time_window, max_flow_le
     round_fieldnames = ['Model', 'Round', 'AvgF1']
     tuning_fieldnames = ['Model', 'Epochs', 'Steps', 'Mode', 'Weighted', 'Experiment', 'ClientsOrder','Round', 'TotalClientRounds', 'F1','F1_std','Time(sec)']
     for client in clients:
-        round_fieldnames.append(client['name'][0:6] + '(f1)')
-        round_fieldnames.append(client['name'][0:6] + '(loss)')
-        tuning_fieldnames.append(client['name'][0:6] + '(f1)')
-        tuning_fieldnames.append(client['name'][0:6] + '(rounds)')
+        round_fieldnames.append(client['name'] + '(f1)')
+        round_fieldnames.append(client['name']+ '(loss)')
+        tuning_fieldnames.append(client['name'] + '(f1)')
+        tuning_fieldnames.append(client['name'] + '(rounds)')
 
     hyperparamters_tuning_file = open(outdir + '/federated-tuning.csv', 'w', newline='')
 
@@ -100,138 +93,139 @@ def  FederatedTrain(clients, model_type, output_folder, time_window, max_flow_le
     # we keep client_indeces for compatibility with the full experiments
     client_indeces = list(range(0, len(clients)))
 
-    for training_clients in training_clients_list:
-        for epochs in epochs_list:
-            for steps in steps_list:
-                for weighted in weighted_list:
+    training_file = open(outdir + '/training-rounds-' + model_type + '-epochs-' + str(epochs) + "-steps-" + str(steps) + "-trainingclients-" + str(training_mode) + "-weighted-" + str(weighted)  + '.csv','w', newline='')
+    writer = csv.DictWriter(training_file, fieldnames=round_fieldnames)
+    writer.writeheader()
 
-                    training_file = open(outdir + '/training-rounds-' + model_type + '-epochs-' + str(epochs) + "-steps-" + str(steps) + "-trainingclients-" + str(training_clients) + "-weighted-" + str(weighted)  + '.csv','w', newline='')
-                    writer = csv.DictWriter(training_file, fieldnames=round_fieldnames)
-                    writer.writeheader()
+    # initialising clients and servers before starting a new round of training
+    server = copy.deepcopy(start_server)
+    best_model = server['model']
 
-                    # initialising clients and servers before starting a new round of training
-                    server = copy.deepcopy(start_server)
-                    best_model = server['model']
+    for client in clients: reset_client(client)
+    if training_mode == "flddos": # clients' local model starts with an empty model
+            for client in clients: 
+                client['local_model'] = clone_model(server['model'])
+                client['local_model'].set_weights(server['model'].get_weights())
+                compileModel(client['local_model'], optimizer,'binary_crossentropy')
+    start_time = time.time()
+    total_rounds = 0
 
-                    for client in clients: reset_client(client)
-                    start_time = time.time()
-                    total_rounds = 0
+    # in this configuration we use a static subset of  all clients
+    client_subset = clients
+    stop_counter = 0
+    max_f1 = 0
+    stop = False
 
-                    # in this configuration we use a static subset of  all clients
-                    client_subset = clients
-                    stop_counter = 0
-                    max_f1 = 0
-                    stop = False
+    while True:  # training epochs
+        total_rounds += 1
 
-                    while True:  # training epochs
-                        total_rounds += 1
+        # here we set clients' epochs and steps/epoch
+        update_client_training_parameters(client_subset, 'epochs', epochs, MAX_EPOCHS, MIN_EPOCHS)
+        update_client_training_parameters(client_subset, 'steps_per_epoch', steps, MAX_STEPS, MIN_STEPS)
 
-                        # here we set clients' epochs and steps/epoch
-                        update_client_training_parameters(client_subset, 'epochs', epochs, MAX_EPOCHS, MIN_EPOCHS)
-                        update_client_training_parameters(client_subset, 'steps_per_epoch', steps, MAX_STEPS, MIN_STEPS)
+        training_time = 0
+        for client in client_subset:
+            # "Send" the global model to the client
+            print("Training client in folder: ", client['folder'])
+            client['model'] = clone_model(server['model'])
+            client['model'].set_weights(server['model'].get_weights())
+            compileModel(client['model'], optimizer,'binary_crossentropy')
 
-                        training_time = 0
-                        for client in client_subset:
-                            # "Send" the global model to the client
-                            print("Training client in folder: ", client['folder'])
-                            client['model'] = clone_model(server['model'])
-                            client['model'].set_weights(server['model'].get_weights())
-                            compileModel(client['model'], optimizer,'binary_crossentropy')
-
-                            # If the client is selected, perform the local training
-                            if client['update'] == True:
-                                client['model'], client['loss_train'], client['loss_val'], client['round_time'] = trainClientModel(
-                                    client['model'], client['epochs'],
-                                    client['training'][0],
-                                    client['training'][1],
-                                    client['validation'][0],
-                                    client['validation'][1],
-                                    client['folder'],
-                                    steps_per_epoch=client['steps_per_epoch'])
-                                client['rounds'] +=1
-                                if client['round_time'] > training_time:
-                                    training_time = client['round_time']
+            # If the client is selected, perform the local training
+            if client['update'] == True:
+                client['model'], client['loss_train'], client['loss_val'], client['round_time'] = trainClientModel(
+                    client['model'], 
+                    client['epochs'],
+                    client['training'][0],
+                    client['training'][1],
+                    client['validation'][0],
+                    client['validation'][1],
+                    client['folder'],
+                    steps_per_epoch=client['steps_per_epoch'])
+                client['rounds'] +=1
+                if client['round_time'] > training_time:
+                    training_time = client['round_time']
 
 
-                        server['model'] = aggregation_weighted_sum(server, client_subset, weighted)
+        server['model'] = aggregation_weighted_sum(server, client_subset, weighted)
+            
+        f1_val, f1_std_val = select_clients(server['model'], client_subset, training_mode=training_mode)
+        print("\n################ Round: " + '{:05d}'.format(total_rounds) + " ################")
+        print('Average F1 Score: ', str(f1_val))
+        print('Std_dev F1 Score: ', str(f1_std_val))
 
-                        f1_val, f1_std_val = select_clients(server['model'], client_subset, training_clients=training_clients)
-                        print("\n################ Round: " + '{:05d}'.format(total_rounds) + " ################")
-                        print('Average F1 Score: ', str(f1_val))
-                        print('Std_dev F1 Score: ', str(f1_std_val))
+        # f1 score on the validation set. We put "*" when the f1 reaches or overcome the max_f1
+        row = {'Model': model_type if f1_val < max_f1 else "*"+model_type, 'Round': int(total_rounds),
+            'AvgF1': '{:06.5f}'.format(f1_val)}
+        for client in client_subset:
+            row[client['name'] + '(f1)'] = '{:06.5f}'.format(client['f1_val'])
+            row[client['name'] + '(loss)'] = '{:06.5f}'.format(client['loss_val'])
+        writer.writerow(row)
+        training_file.flush()
 
-                        # f1 score on the validation set. We put "*" when the f1 reaches or overcome the max_f1
-                        row = {'Model': model_type if f1_val < max_f1 else "*"+model_type, 'Round': int(total_rounds),
-                            'AvgF1': '{:06.5f}'.format(f1_val)}
-                        for client in client_subset:
-                            row[client['name'][0:6] + '(f1)'] = '{:06.5f}'.format(client['f1_val'])
-                            row[client['name'][0:6] + '(loss)'] = '{:06.5f}'.format(client['loss_val'])
-                        writer.writerow(row)
-                        training_file.flush()
+        if f1_val > max_f1:
+            max_f1 = f1_val
+            best_model = clone_model(server['model'])
+            best_model.set_weights(server['model'].get_weights())
+            print("New Max F1 Score: " + str(max_f1))
+            stop_counter = 0
+        else:
+            stop_counter += 1
+            print("Stop counter: " + str(stop_counter))
 
-                        if f1_val > max_f1:
-                            max_f1 = f1_val
-                            best_model = clone_model(server['model'])
-                            best_model.set_weights(server['model'].get_weights())
-                            print("New Max F1 Score: " + str(max_f1))
-                            stop_counter = 0
-                        else:
-                            stop_counter += 1
-                            print("Stop counter: " + str(stop_counter))
+        print('Current Max F1 Score: ' + str(max_f1))
+        print("##############################################\n")
 
-                        print('Current Max F1 Score: ' + str(max_f1))
-                        print("##############################################\n")
+        total_client_rounds = 0
+        for client in clients:
+            total_client_rounds += client['rounds']
 
-                        total_client_rounds = 0
-                        for client in clients:
-                            total_client_rounds += client['rounds']
+        f1_val, f1_std_val = assess_best_model(best_model, client_subset,update_clients=True,print_f1=False)
+        row = {'Model': model_type, 'Epochs': epochs, 'Steps': steps,
+                'Mode': training_mode, 'Weighted': weighted, 'Experiment': 0,
+                'ClientsOrder': ' '.join(str(c) for c in client_indeces), 'Round': int(total_rounds),
+                'TotalClientRounds': int(total_client_rounds), 'F1': '{:06.5f}'.format(f1_val),
+                'F1_std': '{:06.5f}'.format(f1_std_val), 'Time(sec)': '{:06.2f}'.format(training_time)}
+        for client in clients:
+            row[client['name'] + '(f1)'] = '{:06.5f}'.format(client['f1_val_best'])
+            row[client['name'] + '(rounds)'] = int(client['rounds'])
 
-                        f1_val, f1_std_val = assess_server_model(best_model, client_subset,update_clients=True)
-                        row = {'Model': model_type, 'Epochs': epochs, 'Steps': steps,
-                               'Mode': training_clients, 'Weighted': weighted, 'Experiment': 0,
-                               'ClientsOrder': ' '.join(str(c) for c in client_indeces), 'Round': int(total_rounds),
-                               'TotalClientRounds': int(total_client_rounds), 'F1': '{:06.5f}'.format(f1_val),
-                               'F1_std': '{:06.5f}'.format(f1_std_val), 'Time(sec)': '{:06.2f}'.format(training_time)}
-                        for client in clients:
-                            row[client['name'][0:6] + '(f1)'] = '{:06.5f}'.format(client['f1_val'])
-                            row[client['name'][0:6] + '(rounds)'] = int(client['rounds'])
+        tuning_writer.writerow(row)
+        hyperparamters_tuning_file.flush()
 
-                        tuning_writer.writerow(row)
-                        hyperparamters_tuning_file.flush()
+        # early stopping procedure
+        if training_mode == "flad":
+            stop = True if stop_counter > PATIENCE else False
+        else:
+            stop = True if total_rounds == max_rounds else False
 
-                        # early stopping procedure
-                        if training_clients == "fedavg":
-                            stop = True if total_rounds == MAX_FEDAVG_ROUNDS else False
-                        if training_clients == "flad":
-                            stop = True if stop_counter > PATIENCE else False
+        if stop == True:
+            # once we have trained with all the clients, we save the best model and we compute the f1_val
+            # with the best model obtained with all the clients. We also close the training stats file and
+            # we save the final results obtained with a given set of hyper-parameters
 
-                        if stop == True:
-                            # once we have trained with all the clients, we save the best model and we compute the f1_val
-                            # with the best model obtained with all the clients. We also close the training stats file and
-                            # we save the final results obtained with a given set of hyper-parameters
+            best_model_file_name = str(time_window) + 't-' + str(max_flow_len) + 'n-' + model_type + '-epochs-' + str(epochs) + "-steps-" + str(steps) + "-trainingclients-" + str(training_mode) + "-weighted-" + str(weighted) + \
+                                    "-round-" + str(total_rounds)
+            best_model.save(outdir + '/' + best_model_file_name + '.h5')
+            break
 
-                            best_model_file_name = str(time_window) + 't-' + str(max_flow_len) + 'n-' + model_type + '-epochs-' + str(epochs) + "-steps-" + str(steps) + "-trainingclients-" + str(training_clients) + "-weighted-" + str(weighted) + \
-                                                    "-round-" + str(total_rounds)
-                            best_model.save(outdir + '/' + best_model_file_name + '.h5')
-                            break
-
-                    training_file.close()
+    training_file.close()
 
     hyperparamters_tuning_file.close()
 
 # We evaluate the aggregated model on the clients validation sets
 # in a real scenario, the server would send back the aggregated model to the clients, which evaluate it on their local validation data
 # as a final step, the clients would send the resulting f1 score to the server for analysis (such as the weighted avaerage below)
-def select_clients(server_model, clients, training_clients):
+def select_clients(server_model, clients, training_mode):
     average_f1, std_dev_f1 = assess_server_model(server_model, clients,update_clients=True, print_f1=True)
 
-    # selection of clients to train in the next round
-    random_clients_list = random.sample(clients,int(len(clients)/2))
+    # selection of clients to train in the next round for fedavg and flddos
+    random_clients_list = random.sample(clients,int(len(clients)*CLIENT_FRACTION))
 
     for client in clients:
-        if training_clients == "flad" and client['f1_val'] <= average_f1:
+        if training_mode == "flad" and client['f1_val'] <= average_f1:
             client['update']= True
-        elif training_clients == "fedavg" and client in random_clients_list:
+        elif training_mode != "flad" and client in random_clients_list:
             client['update'] = True
         else:
             client['update'] = False
@@ -250,6 +244,35 @@ def assess_server_model(server_model, clients,update_clients=False, print_f1=Fal
             client['f1_val'] = f1_score(Y_val, Y_pred)
         if print_f1 == True:
             print(client['name'] + ": " + str(client['f1_val']))
+
+    K.clear_session()
+    gc.collect()
+
+
+    if len(clients) > 0:
+        average_f1 = np.average(f1_val_list)
+        std_dev_f1 = np.std(f1_val_list)
+    else:
+        average_f1 = 0
+        std_dev_f1 = 0
+
+    return average_f1, std_dev_f1
+
+# check the BEST global model on the clients' validation sets
+def assess_best_model(server_model, clients,update_clients=False, print_f1=False):
+    f1_val_list = []
+    for client in clients:
+        X_val, Y_val = client['validation']
+        Y_pred = np.squeeze(server_model.predict(X_val, batch_size=2048) > 0.5)
+        client_f1 = f1_score(Y_val, Y_pred)
+        f1_val_list.append(client_f1)
+        if update_clients == True:
+            client['f1_val_best'] = f1_score(Y_val, Y_pred)
+        if print_f1 == True:
+            print(client['name'] + ": " + str(client['f1_val_best']))
+
+    K.clear_session()
+    gc.collect()
 
 
     if len(clients) > 0:
@@ -285,7 +308,7 @@ def update_client_training_parameters(clients, parameter, value, max_value, min_
             max_value = max(min_value+1, math.ceil(max_value*(1-min_f1_value))) # min acceptable value for is min_value+1
             value_list = max_value + min_value - scale_linear_bycolumn(f1_list, np.min(f1_list), np.max(f1_list), high=float(max_value), low=min_value)
 
-        elif len(set(f1_list)) == 1: # if there a unique f1 value,  scale_linear_bycolumn does not work
+        elif len(set(f1_list)) == 1: # if there a single f1 value,  scale_linear_bycolumn does not work
             value_list = [max_value] * len(update_clients)
         else:
             return 0

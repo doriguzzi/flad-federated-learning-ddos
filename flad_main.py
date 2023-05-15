@@ -1,4 +1,4 @@
-# Copyright (c) 2022 @ FBK - Fondazione Bruno Kessler
+# Copyright (c) 2023 @ FBK - Fondazione Bruno Kessler
 # Author: Roberto Doriguzzi-Corin
 # Project: FLAD, Adaptive Federated Learning for DDoS Attack Detection
 #
@@ -40,9 +40,9 @@ def main(argv):
     if os.path.isdir(args.output_folder) == False:
         os.mkdir(args.output_folder)
 
-    epochs_list = ['auto']
+    epochs = 'auto'
     if args.local_epochs >= 1:
-        epochs_list = [int(args.local_epochs)]
+        epochs = int(args.local_epochs)
 
     if args.train_federated is not None:
         subfolders = glob.glob(args.train_federated + "/*/")
@@ -70,8 +70,8 @@ def main(argv):
 
         # test with progressive introduction of new attacks
         FederatedTrain(clients, 'mlp', args.output_folder, time_window, max_flow_len, dataset_name,
-                        epochs_list=epochs_list, steps_list=['auto'], training_clients_list=["flad"], weighted=False,
-                        optimizer="SGD", nr_experiments=EXPERIMENTS)
+                               epochs=epochs, steps='auto', training_mode="flad", weighted=False,
+                               optimizer="SGD", nr_experiments=EXPERIMENTS)
 
 
 if __name__ == "__main__":

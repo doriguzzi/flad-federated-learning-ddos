@@ -80,32 +80,33 @@ def load_set(folder_path,set_type):
         subfolders = sorted(subfolders)
     for dataset_folder in subfolders:
         dataset_folder = dataset_folder.replace("//", "/")  # remove double slashes when needed
-        file = glob.glob(dataset_folder + "/*" + '-' + set_type + '.hdf5')[0]
+        files = glob.glob(dataset_folder + "/*" + '-' + set_type + '.hdf5')
 
-        filename = file.split('/')[-1].strip()
-        tw = int(filename.split('-')[0].strip().replace('t', ''))
-        mfl = int(filename.split('-')[1].strip().replace('n', ''))
-        dn = filename.split('-')[2].strip()
-        if time_window == 0:
-            time_window = tw
-        else:
-            if tw != time_window:
-                print("Mismatching time window size among datasets!")
-                return None
-        if max_flow_len == 0:
-            max_flow_len = mfl
-        else:
-            if mfl != max_flow_len:
-                print("Mismatching flow length size among datasets!")
-                return None
-        if dataset_name == 0:
-            dataset_name = dn
-        else:
-            if dn != dataset_name:
-                print("Mismatching dataset type among datasets!")
-                return None
+        for file in files:
+            filename = file.split('/')[-1].strip()
+            tw = int(filename.split('-')[0].strip().replace('t', ''))
+            mfl = int(filename.split('-')[1].strip().replace('n', ''))
+            dn = filename.split('-')[2].strip()
+            if time_window == 0:
+                time_window = tw
+            else:
+                if tw != time_window:
+                    print("Mismatching time window size among datasets!")
+                    return None
+            if max_flow_len == 0:
+                max_flow_len = mfl
+            else:
+                if mfl != max_flow_len:
+                    print("Mismatching flow length size among datasets!")
+                    return None
+            if dataset_name == 0:
+                dataset_name = dn
+            else:
+                if dn != dataset_name:
+                    print("Mismatching dataset type among datasets!")
+                    return None
 
-        set_list.append(load_dataset(dataset_folder + "/*" + '-'+ set_type + '.hdf5'))
+            set_list.append(load_dataset(file))
 
     # Concatenation of all the training and validation sets
     X = set_list[0][0]
