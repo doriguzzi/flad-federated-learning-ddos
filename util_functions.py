@@ -1,4 +1,4 @@
-# Copyright (c) 2022 @ FBK - Fondazione Bruno Kessler
+# Copyright (c) 2023 @ FBK - Fondazione Bruno Kessler
 # Author: Roberto Doriguzzi-Corin
 # Project: FLAD, Adaptive Federated Learning for DDoS Attack Detection
 #
