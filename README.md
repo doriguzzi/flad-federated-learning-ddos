@@ -6,8 +6,6 @@ More details on the architecture of FLAD and its performance in terms of detecti
 
 R. Doriguzzi-Corin and D. Siracusa, "FLAD: Adaptive Federated Learning for DDoS Attack Detection," in *arXiv preprint arXiv:2205.06661*, doi: 10.48550/arXiv.2205.06661, 2022.
 
-The code with all the experiments presented in the paper is available in branch [*flad-paper-evaluation*](https://github.com/doriguzzi/flad-federated-learning-ddos/tree/flad-paper-evaluation).
-
 
 ## Installation
 
