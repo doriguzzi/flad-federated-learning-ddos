@@ -11,7 +11,7 @@ The code with all the experiments presented in the paper is available in branch 
 
 ## Installation
 
-The current FLAD's Framework is implemented in Python v3.9 with Keras and Tensorflow 2.X. It inherits the traffic pre-processing tool from the LUCID project (https://github.com/doriguzzi/lucid-ddos), also implemented in Python v3.9 with the support of Numpy and Pyshark libraries. 
+The current FLAD's Framework is implemented in Python v3.9 and tested with Keras and Tensorflow 2.7.1. It inherits the traffic pre-processing tool from the LUCID project (https://github.com/doriguzzi/lucid-ddos), also implemented in Python v3.9 with the support of Numpy and Pyshark libraries. 
 
 FLAD requires the installation of a number of Python tools and libraries. This can be done by using the ```conda``` software environment (https://docs.conda.io/projects/conda/en/latest/).
 We suggest the installation of ```miniconda```, a light version of ```conda```. ```miniconda``` is available for MS Windows, MacOSX and Linux and can be installed by following the guidelines available at https://docs.conda.io/en/latest/miniconda.html#. 
@@ -106,22 +106,29 @@ All the output of the ```lucid_dataset_parser.py``` script is saved within the o
 
 ## Evaluation
 
-FLAD's main script is ```flad_main.py```. The script implements a range of tests to train the MLP model under federated learning settings. 
+FLAD's main script is ```flad_main.py```. The script implements a range of tests to train an NN model (either a Multi-Layer Perceptron (MLP) or a Convolutional Neural Network (CNN)) under federated learning settings. 
 
 ### The training process
 
 The federated training process can be started by executing the following command:
 ```
-python3 flad_main.py --train_federated /path_to/dataset_folder/ 
+python3 flad_main.py --clients /path_to/client_folders/ 
 ```
 
-where option ```--train_federated``` (or ```-t```) is used to indicate the folder with the dataset. The folder must be organised in subfolders, one for each client, containing the local training and validation sets in ```.hdf5``` format.
+where option ```--clients``` (or ```-c```) is used to indicate the folder that contains the clients' local datasets. The folder must be organised in subfolders, one for each client, containing the local training and validation sets in ```.hdf5``` format.
 
-The final global model and the log of the training process are saved in ```h5``` and ```csv``` format respectively in a folder called ```log```, which is automatically created within the code's main folder when the training process is executed for the first time.
+By default, the script executes the FL procedure using the all the FLAD algorithms, including the adaptive selection and tuning of the clients. While the automated mechanism for the selection of clients cannot be disabled, you have the flexibility to specify a fixed number of local epochs and steps/epoch for each client in every round by using one of the following command-line listed below: 
 
-Other useful options are:
+- ```-c```, ```--clients```: folder with the clients local datasets.
 - ```-o```, ```--output_folder```: folder where FLAD saves the final global model and the federated training log files (default: ```./log```). If the folder does not exist, it will be automatically created.
-- ```-e```, ```--local_epochs```: number of local training epochs performed by clients at every round of federated training (default: ```0```, which means adaptive).
+- ```-e```, ```--local_epochs```: number of local training epochs performed by clients at every round of federated training (default: ```None```, which means adaptive).
+- ```-s```, ```--steps_per_epoch```: number of local MBGD steps/epoch performed by clients at every round of federated training (default: ```None```, which means adaptive).
+- ```-m```, ```--model```: Load a model from disk (path to a ```hd5``` file) or use a predefined NN architecture (```mlp``` (default) and ```cnn``` are possible options).
+- ```-O```, ```--optimizer```: Optimizer used by clients to train the global model (options are SGD and Adam).
+- ```-S```, ```--rn_seed```: Seed for the pseudo-number generators of various libraries used in the code, such as: Tensorflow, Numpy, Scikit-learn, etc.).
+
+The final global model and the log of the training process are saved in ```h5``` and ```csv``` format respectively in the folder specified with the option ```--output_folder```, or within a subfolder of folder ```./log```, if ```--output_folder``` is not used.
+
 
 ## Acknowledgements
 

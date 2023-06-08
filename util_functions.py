@@ -18,44 +18,10 @@ import os
 import numpy as np
 import h5py
 import glob
+import scipy.stats
 from collections import OrderedDict
 from sklearn.utils import shuffle
 import random as rn
-
-SEED = 0
-# Seed Random Numbers
-os.environ['PYTHONHASHSEED']=str(SEED)
-np.random.seed(SEED)
-rn.seed(SEED)
-
-MAX_FLOW_LEN = 100 # number of packets
-TIME_WINDOW = 10
-TRAIN_SIZE = 0.90 # size of the training set wrt the total number of samples
-
-protocols = ['arp','data','dns','ftp','http','icmp','ip','ssdp','ssl','telnet','tcp','udp']
-powers_of_two = np.array([2**i for i in range(len(protocols))])
-
-num_classes_2017 = 7
-attacks2017 = ["Benign","DoS","FTP Patator","SSH Patator","Port Scan", "Botnet","Web Attack"]
-
-num_classes_2019 = 2
-attacks2019 = ["Benign","DDoS"]
-
-
-# feature list with min and max values
-feature_list = OrderedDict([
-    ('timestamp', [0,10]),
-    ('packet_length',[0,1<<16]),
-    ('highest_layer',[0,1<<32]),
-    ('IP_flags',[0,1<<16]),
-    ('protocols',[0,1<<len(protocols)]),
-    ('TCP_length',[0,1<<16]),
-    ('TCP_ack',[0,1<<32]),
-    ('TCP_flags',[0,1<<16]),
-    ('TCP_window_size',[0,1<<16]),
-    ('UDP_length',[0,1<<16]),
-    ('ICMP_type',[0,1<<8])]
-)
 
 def load_dataset(path):
     filename = glob.glob(path)[0]
@@ -68,7 +34,7 @@ def load_dataset(path):
 
     return X_train, Y_train
 
-def load_set(folder_path,set_type):
+def load_set(folder_path,set_type,seed):
     set_list = []
     time_window = 0
     max_flow_len = 0
@@ -115,7 +81,7 @@ def load_set(folder_path,set_type):
         X = np.concatenate((X, set_list[n][0]), axis=0)
         Y = np.concatenate((Y, set_list[n][1]), axis=0)
 
-    X, Y = shuffle(X, Y, random_state=SEED)
+    X, Y = shuffle(X, Y,random_state=seed)
 
     return X,Y, time_window, max_flow_len, dataset_name
 

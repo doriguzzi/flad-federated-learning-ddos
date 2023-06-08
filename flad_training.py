@@ -22,23 +22,16 @@ from sklearn.metrics import f1_score
 import random
 import copy
 import gc
+import shutil
 
 # General hyperparameters
 EXPERIMENTS = 10
-DEFAULT_BATCH_SIZE = 50
-MAX_FL_ROUNDS = 1000 
+
+# FL hyper-parameters
+PATIENCE = 25
 CLIENT_FRACTION = 0.8 # Fraction of clients selected at each round for FedAvg-based approaches
 
-# FLAD hyper-parameters
-PATIENCE = 25
-
-
-def trainClientModel(model, epochs, X_train, Y_train,X_val, Y_val, dataset_folder, steps_per_epoch=None, batch_size=DEFAULT_BATCH_SIZE):
-
-    training_fieldnames = ['Model', 'TIME(t)', 'ACC(t)',  'ERR(t)',  'ACC(v)',  'ERR(v)']
-    stats_file = open(dataset_folder + 'training_history.csv', 'a')
-    training_writer = csv.DictWriter(stats_file, fieldnames=training_fieldnames)
-    training_writer.writeheader()
+def trainClientModel(model, epochs, X_train, Y_train,X_val, Y_val, steps_per_epoch=None):
 
     if steps_per_epoch != None and steps_per_epoch > 0:
         batch_size = max(int(len(Y_train) / steps_per_epoch),1) # min batch size set to 1
@@ -48,28 +41,13 @@ def trainClientModel(model, epochs, X_train, Y_train,X_val, Y_val, dataset_folde
                         verbose=2, callbacks=[])
     tp1 = time.time()
 
-    accuracy_train = history.history['accuracy'][-1]
     loss_train = history.history['loss'][-1]
-    accuracy_val = history.history['val_accuracy'][-1]
     loss_val = history.history['val_loss'][-1]
 
-    row = {'Model': model.name, 'TIME(t)': '{:10.3f}'.format(tp1 - tp0),
-           'ACC(t)': '{:05.4f}'.format(accuracy_train),
-           'ERR(t)': '{:05.4f}'.format(loss_train),
-           'ACC(v)': '{:05.4f}'.format(accuracy_val),
-           'ERR(v)': '{:05.4f}'.format(loss_val)}
-
-    training_writer.writerow(row)
-    stats_file.flush()
-    stats_file.close()
     return model, loss_train, loss_val, tp1-tp0
 
 # Federated training procedure
-def  FederatedTrain(clients, model_type, output_folder, time_window, max_flow_len, dataset_name, epochs='auto', steps='auto', training_mode = 'flad', max_rounds = MAX_FL_ROUNDS, weighted=False,optimizer='SGD',nr_experiments=EXPERIMENTS):
-
-    outdir = output_folder + "/federated_training-" + time.strftime("%Y%m%d-%H%M%S") + "/"
-    if os.path.isdir(outdir) == False:
-        os.mkdir(outdir)
+def  FederatedTrain(clients, model_type, outdir, time_window, max_flow_len, dataset_name, epochs='auto', steps='auto', training_mode = 'flad', weighted=False,optimizer='SGD',nr_experiments=EXPERIMENTS):
 
     round_fieldnames = ['Model', 'Round', 'AvgF1']
     tuning_fieldnames = ['Model', 'Epochs', 'Steps', 'Mode', 'Weighted', 'Experiment', 'ClientsOrder','Round', 'TotalClientRounds', 'F1','F1_std','Time(sec)']
@@ -86,28 +64,21 @@ def  FederatedTrain(clients, model_type, output_folder, time_window, max_flow_le
     hyperparamters_tuning_file.flush()
 
     # we start all the experiments with the same server, which means same initial model and random weights
-    start_server = init_server(model_type, dataset_name, clients[0]['input_shape'], max_flow_len)
-    if start_server == None:
+    server = init_server(model_type, dataset_name, clients[0]['input_shape'], max_flow_len)
+    if server == None:
         exit(-1)
+    model_name = server['model'].name
 
     # we keep client_indeces for compatibility with the full experiments
     client_indeces = list(range(0, len(clients)))
 
-    training_file = open(outdir + '/training-rounds-' + model_type + '-epochs-' + str(epochs) + "-steps-" + str(steps) + "-trainingclients-" + str(training_mode) + "-weighted-" + str(weighted)  + '.csv','w', newline='')
+    training_filename = model_name + '-epochs-' + str(epochs) + "-steps-" + str(steps) + "-trainingclients-" + str(training_mode) + "-weighted-" + str(weighted)
+    training_file = open(outdir + '/' + training_filename  + '.csv','w', newline='')
     writer = csv.DictWriter(training_file, fieldnames=round_fieldnames)
     writer.writeheader()
 
-    # initialising clients and servers before starting a new round of training
-    server = copy.deepcopy(start_server)
+    # initialising clients before starting a new round of training
     best_model = server['model']
-
-    for client in clients: reset_client(client)
-    if training_mode == "flddos": # clients' local model starts with an empty model
-            for client in clients: 
-                client['local_model'] = clone_model(server['model'])
-                client['local_model'].set_weights(server['model'].get_weights())
-                compileModel(client['local_model'], optimizer,'binary_crossentropy')
-    start_time = time.time()
     total_rounds = 0
 
     # in this configuration we use a static subset of  all clients
@@ -140,7 +111,6 @@ def  FederatedTrain(clients, model_type, output_folder, time_window, max_flow_le
                     client['training'][1],
                     client['validation'][0],
                     client['validation'][1],
-                    client['folder'],
                     steps_per_epoch=client['steps_per_epoch'])
                 client['rounds'] +=1
                 if client['round_time'] > training_time:
@@ -149,13 +119,14 @@ def  FederatedTrain(clients, model_type, output_folder, time_window, max_flow_le
 
         server['model'] = aggregation_weighted_sum(server, client_subset, weighted)
             
-        f1_val, f1_std_val = select_clients(server['model'], client_subset, training_mode=training_mode)
         print("\n################ Round: " + '{:05d}'.format(total_rounds) + " ################")
+        f1_val, f1_std_val = select_clients(server['model'], client_subset, training_mode=training_mode)
+        print("==============================================")
         print('Average F1 Score: ', str(f1_val))
         print('Std_dev F1 Score: ', str(f1_std_val))
 
         # f1 score on the validation set. We put "*" when the f1 reaches or overcome the max_f1
-        row = {'Model': model_type if f1_val < max_f1 else "*"+model_type, 'Round': int(total_rounds),
+        row = {'Model': model_name if f1_val < max_f1 else "*"+model_name, 'Round': int(total_rounds),
             'AvgF1': '{:06.5f}'.format(f1_val)}
         for client in client_subset:
             row[client['name'] + '(f1)'] = '{:06.5f}'.format(client['f1_val'])
@@ -181,7 +152,7 @@ def  FederatedTrain(clients, model_type, output_folder, time_window, max_flow_le
             total_client_rounds += client['rounds']
 
         f1_val, f1_std_val = assess_best_model(best_model, client_subset,update_clients=True,print_f1=False)
-        row = {'Model': model_type, 'Epochs': epochs, 'Steps': steps,
+        row = {'Model': model_name, 'Epochs': epochs, 'Steps': steps,
                 'Mode': training_mode, 'Weighted': weighted, 'Experiment': 0,
                 'ClientsOrder': ' '.join(str(c) for c in client_indeces), 'Round': int(total_rounds),
                 'TotalClientRounds': int(total_client_rounds), 'F1': '{:06.5f}'.format(f1_val),
@@ -194,22 +165,18 @@ def  FederatedTrain(clients, model_type, output_folder, time_window, max_flow_le
         hyperparamters_tuning_file.flush()
 
         # early stopping procedure
-        if training_mode == "flad":
-            stop = True if stop_counter > PATIENCE else False
-        else:
-            stop = True if total_rounds == max_rounds else False
+        stop = True if stop_counter > PATIENCE else False
 
         if stop == True:
             # once we have trained with all the clients, we save the best model and we compute the f1_val
             # with the best model obtained with all the clients. We also close the training stats file and
             # we save the final results obtained with a given set of hyper-parameters
-
-            best_model_file_name = str(time_window) + 't-' + str(max_flow_len) + 'n-' + model_type + '-epochs-' + str(epochs) + "-steps-" + str(steps) + "-trainingclients-" + str(training_mode) + "-weighted-" + str(weighted) + \
-                                    "-round-" + str(total_rounds)
-            best_model.save(outdir + '/' + best_model_file_name + '.h5')
+            best_model_file_name = str(time_window) + 't-' + str(max_flow_len) + 'n-' + model_name + '-global-model.h5'
+            best_model.save(outdir + '/' + best_model_file_name)
             break
 
     training_file.close()
+    shutil.move(outdir + '/' + training_filename  + '.csv', outdir + '/' + training_filename  + '-rounds-' + str(total_rounds) + '.csv') #here we add the total training rounds to the filename
 
     hyperparamters_tuning_file.close()
 
@@ -315,6 +282,8 @@ def update_client_training_parameters(clients, parameter, value, max_value, min_
 
         for client in update_clients:
             client[parameter] = int(value_list[update_clients.index(client)])
+            #print ("Client: " + client['name'] + " F1: " + str(client['f1_val']) + " Parameter(" + parameter + "): "  + str(client[parameter]))
+
 
     else: # static parameter
         for client in update_clients:

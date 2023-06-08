@@ -19,20 +19,18 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' # set tensorflow log level
 from util_functions import *
 import tensorflow as tf
 config = tf.compat.v1.ConfigProto(inter_op_parallelism_threads=1)
-from tensorflow.keras import regularizers
 from tensorflow.keras.optimizers import Adam,SGD
-from tensorflow.keras.layers import Input, Dense, Activation, ZeroPadding2D, BatchNormalization, Flatten, Conv2D, Conv1D, LSTM, Reshape
-from tensorflow.keras.layers import AveragePooling2D, MaxPooling2D, Dropout, GlobalMaxPooling2D, GlobalAveragePooling2D, Layer
+from tensorflow.keras.layers import Input, Dense, Activation,  Flatten, Conv2D
+from tensorflow.keras.layers import MaxPooling2D, Dropout
 from tensorflow.keras.models import Model, Sequential, save_model, load_model, clone_model
 import tensorflow.keras.backend as K
 from tensorflow.keras.utils import plot_model, to_categorical
 from tensorflow._api.v2.math import reduce_sum, square
-tf.keras.utils.set_random_seed(SEED)
+
 K.set_image_data_format('channels_last')
 
 # disable GPUs for test reproducibility
 tf.config.set_visible_devices([], 'GPU')
-
 
 KERNELS = 256
 MLP_UNITS = 32
@@ -109,15 +107,17 @@ def init_server(model_type, dataset_name, input_shape, max_flow_len):
     features = input_shape[1]
 
     if model_type == 'cnn':
-        server['model'] = CNNModel(dataset_name + "-CNN", input_shape, kernels=KERNELS, kernel_rows=min(3,max_flow_len), kernel_col=features)
+        server['model'] = CNNModel('cnn', input_shape, kernels=KERNELS, kernel_rows=min(3,max_flow_len), kernel_col=features)
     elif model_type == 'mlp':
-        server['model'] = FCModel(dataset_name + "-MLP", input_shape, units=MLP_UNITS)
+        server['model'] = FCModel('mlp', input_shape, units=MLP_UNITS)
     elif model_type is not None:
         try:
-            server['model'] = load_model(model_type)
+            print ("Loading model from file: ", model_type)
+            server['model'] = load_model(model_type,compile=False)
         except:
             print("Error: Invalid model file!")
-            return None
+            print("Initialising an MLP as the primary global model...")
+            server['model'] = FCModel('mlp', input_shape, units=MLP_UNITS)
     else:
         print("Error: Please use option \"model\" to indicate a model type (mlp or cnn), or to provide a pretrained model in h5 format")
         return None
@@ -140,6 +140,7 @@ def init_client(subfolder, X_train, Y_train, X_val, Y_val, dataset_name, time_wi
     client['classes'] =  np.unique(Y_train)
     client['time_window'] = time_window
     client['max_flow_len'] = max_flow_len
+    client['flddos_lambda'] = 0.9 if "WebDDoS" in client['name'] or "Syn" in client['name'] else 1
     reset_client(client)
     return client
 
