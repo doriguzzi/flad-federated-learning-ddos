@@ -104,9 +104,7 @@ All the output of the ```lucid_dataset_parser.py``` script is saved within the o
 
 ## Evaluation
 
-FLAD's main script is ```flad_main.py```. The script implements a range of tests to train the MLP model under federated learning settings. 
-
-FLAD's main script is ```flad_main.py```. The script implements a range of tests to train the MLP model under various federated learning settings, and to compare FLAD against state-of-the-art FL solutions such as: (i) the Federated Averaging algorithm ([FedAvg](http://proceedings.mlr.press/v54/mcmahan17a.html)) proposed by McMahan et al. in Communication-efﬁcient learning of deep networks from decentralized data, and (ii) Federated Learning DDoS ([FLDDoS](https://www.computer.org/csdl/proceedings-article/cbd/2022/074500a236/1EVijQfCe7m)), which has been designed to tackle the issues of FedAvg associated with non-i.i.d. DDoS traffic data. 
+FLAD's main script is ```flad_main.py```. The script implements a range of tests to train an NN model (either a Multi-Layer Perceptron (MLP) or a Convolutional Neural Network (CNN)) under federated learning settings, and to compare FLAD against state-of-the-art FL solutions such as: (i) the Federated Averaging algorithm ([FedAvg](http://proceedings.mlr.press/v54/mcmahan17a.html)) proposed by McMahan et al. in Communication-efﬁcient learning of deep networks from decentralized data, and (ii) Federated Learning DDoS ([FLDDoS](https://www.computer.org/csdl/proceedings-article/cbd/2022/074500a236/1EVijQfCe7m)), which has been designed to tackle the issues of FedAvg associated with non-i.i.d. DDoS traffic data. 
 
 ### The training process
 
