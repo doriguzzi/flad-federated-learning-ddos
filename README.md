@@ -10,7 +10,7 @@ Volume 137, 2024, doi: 10.1016/j.cose.2023.103597
 
 ## Installation
 
-The current FLAD's Framework is implemented in Python v3.9 and tested with Keras and Tensorflow 2.7.1. It inherits the traffic pre-processing tool from the LUCID project (https://github.com/doriguzzi/lucid-ddos), also implemented in Python v3.9 with the support of Numpy and Pyshark libraries. 
+The current FLAD's Framework is implemented in Python v3.X (with X>=9) and tested with Keras and Tensorflow 2.16.1. It inherits the traffic pre-processing tool from the LUCID project (https://github.com/doriguzzi/lucid-ddos), implemented in Python v3.9 with the support of Numpy and Pyshark libraries. 
 
 FLAD requires the installation of a number of Python tools and libraries. This can be done by using the ```conda``` software environment (https://docs.conda.io/projects/conda/en/latest/).
 We suggest the installation of ```miniconda```, a light version of ```conda```. ```miniconda``` is available for MS Windows, MacOSX and Linux and can be installed by following the guidelines available at https://docs.conda.io/en/latest/miniconda.html#. 
@@ -19,34 +19,28 @@ Execute one of the following commands (based on your operating system) and follo
 
 ```
 bash Miniconda3-latest-Linux-x86_64.sh (on Linux operating systems)
-bash Miniconda3-latest-MacOSX-x86_64.sh (on macOS)
+bash Miniconda3-latest-MacOSX-arm64.sh (on Apple Silicon Mac)
 ```
 
-Then create a new ```conda``` environment (called ```python39```) based on Python 3.9:
+Then create a new ```conda``` environment (called ```python312```) based on Python 3.12:
 
 ```
-conda create -n python39 python=3.9
+conda create -n python312 python=3.12
 ```
 
-Activate the new ```python39``` environment:
+Activate the new ```python312``` environment:
 
 ```
-conda activate python39
+conda activate python312
 ```
 
 And configure the environment with ```tensorflow``` and a few more packages:
 
-On Linux operating systems:
 ```
-(python39)$ pip install tensorflow==2.7.1
-(python39)$ pip install scikit-learn h5py pyshark protobuf==3.19.6
+(python312)$ pip install tensorflow==2.16.1
+(python312)$ pip install scikit-learn h5py pyshark
 ```
 
-On macOS (tested on Apple M1 CPU)
-```
-(python39)$ conda install -c conda-forge tensorflow=2.7.1
-(python39)$ conda install -c conda-forge scikit-learn h5py pyshark
-```
 Pyshark is used in the ```lucid_dataset_parser.py``` script for data pre-processing.
 Pyshark is just Python wrapper for tshark, meaning that ```tshark``` must be also installed. On an Ubuntu-based OS, use the following command:
 
@@ -56,11 +50,11 @@ sudo apt install tshark
 
 Please note that the current parser code works with ```tshark``` **version 3.2.3 or lower** or **version 3.6 or higher**. Issues have been reported when using intermediate releases such as 3.4.X.
 
-For the sake of simplicity, we omit the command prompt ```(python39)$``` in the following example commands in this README.   ```(python39)$``` indicates that we are working inside the ```python39``` execution environment, which provides all the required libraries and tools. If the command prompt is not visible, re-activate the environment as explained above.
+For the sake of simplicity, we omit the command prompt ```(python312)$``` in the following example commands in this README.   ```(python312)$``` indicates that we are working inside the ```python312``` execution environment, which provides all the required libraries and tools. If the command prompt is not visible, re-activate the environment as explained above.
 
 ## Traffic pre-processing
 
-FLAD has been tested with a Multi Layer Perceptron (MLP) model consisting of two fully connected hidden layers of 32 neurons each. The output layer includes a single neuron whose value represents the predicted probability of a traffic flow of being malicious (DDoS). The input is an array-like representation of a traffic flow, the same implemented in LUCID. For this reason, FLAD adopts the same traffic preprocessing tool of LUCID, including support to the CIC-DDoS2019 DDoS dataset from the University of New Brunswick (UNB) (https://www.unb.ca/cic/datasets/index.html). Follows the same procedure for traffic pre-processing presented in the LUCID repository (https://github.com/doriguzzi/lucid-ddos).
+FLAD has been tested with a Multi Layer Perceptron (MLP) model consisting of two fully connected hidden layers of 32 neurons each. The output layer includes a single neuron whose value represents the predicted probability of a traffic flow of being malicious (DDoS). The input is an array-like representation of a traffic flow, the same as implemented in LUCID. For this reason, FLAD adopts the same traffic preprocessing tool of LUCID, including support to the CIC-DDoS2019 DDoS dataset from the University of New Brunswick (UNB) (https://www.unb.ca/cic/datasets/index.html). Follows the same procedure for traffic pre-processing presented in the LUCID repository (https://github.com/doriguzzi/lucid-ddos).
 
 FLAD requires a labelled dataset, including the traffic traces in the format of ```pcap``` files. The traffic pre-processing functions are implemented in the ```lucid_dataset_parser.py``` Python script. It currently supports three DDoS datasets from the University of New Brunswick (UNB) (https://www.unb.ca/cic/datasets/index.html): CIC-IDS2017, CSE-CIC-IDS2018, CIC-DDoS2019, plus a custom dataset containing a SYN Flood DDoS attack (SYN2020). FLAD has been tested on the CIC-DDoS2019 dataset and the results are reported in the paper referenced above. More information on this traffic pre-processing tool can be found in the LUCID documentation.
 
@@ -69,7 +63,7 @@ FLAD requires a labelled dataset, including the traffic traces in the format of 
 
 The traffic pre-processing operation comprises two steps. The first parses the file with the labels (if needed) all extracts the features from the packets of all the ```pcap``` files contained in the source directory. The features are grouped into flows, where a flow is a set of features from packets with the same source IP, source UDP/TCP port, destination IP and destination UDP/TCP port and protocol. Flows are bi-directional, therefore, packet (srcIP,srcPort,dstIP,dstPort,proto) belongs to the same flow of (dstIP,dstPort,srcIP,srcPort,proto). The result is a set of intermediate binary files with extension ```.data```.
 
-This first step can be executed with the followng command:
+This first step can be executed with the following command:
 
 ```
 python3 lucid_dataset_parser.py --dataset_type DOS2019 --dataset_folder /path_to/dataset_folder/ --packets_per_flow 10 --dataset_id DOS2019 --traffic_type all --time_window 10
@@ -83,7 +77,7 @@ Time window and flow length are two hyperparameters of FLAD and LUCID. For more 
 
 ### Second step
 
-The second step loads the ```*.data``` files, merges them into a single data structure stored in RAM memory,  balances the dataset so that number of benign and DDoS samples are approximately the same, splits the data structure into training, validation and test sets, normalises the features between 0 and 1 and executes the padding of samples with zeros so that they all have the same shape.
+The second step loads the ```*.data``` files, merges them into a single data structure stored in RAM memory, balances the dataset so that number of benign and DDoS samples are approximately the same, splits the data structure into training, validation and test sets, normalises the features between 0 and 1 and executes the padding of samples with zeros so that they all have the same shape.
 
 Finally, three files (training, validation and test sets) are saved in *hierarchical data format* ```hdf5``` . 
 
@@ -136,7 +130,7 @@ The experiments presented in the aforementioned FLAD paper can be reproduced by 
 
 #### Convergence analysis
 In this test, we compare FLAD against FedAvg and FLDDoS in terms of convergence time and accuracy of the global model. For the experiments in the paper, the test has been repeated 10 time, each time with a different seed (option ```-rn_seed```).
-First, execute with the ```flad_main.py``` script with option ```-t flad``` (FLAD settings) and specifying a random seed with option ```--rn_seed```. The command to do that is the following:
+First, execute with the ```flad_main.py``` script with option ```-t flad``` (FLAD settings) and specify a random seed with option ```--rn_seed```. The command to do that is the following:
 ```
 python flad_main.py -c ./Dataset/CIC-DDoS2019 -t flad -o log/full-training/flad/test_seed0 --rn_seed 0
 ```
