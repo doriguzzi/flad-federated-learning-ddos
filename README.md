@@ -69,7 +69,7 @@ FLAD requires a labelled dataset, including the traffic traces in the format of 
 
 The traffic pre-processing operation comprises two steps. The first parses the file with the labels (if needed) all extracts the features from the packets of all the ```pcap``` files contained in the source directory. The features are grouped into flows, where a flow is a set of features from packets with the same source IP, source UDP/TCP port, destination IP and destination UDP/TCP port and protocol. Flows are bi-directional, therefore, packet (srcIP,srcPort,dstIP,dstPort,proto) belongs to the same flow of (dstIP,dstPort,srcIP,srcPort,proto). The result is a set of intermediate binary files with extension ```.data```.
 
-This first step can be executed with the followng command:
+This first step can be executed with the following command:
 
 ```
 python3 lucid_dataset_parser.py --dataset_type DOS2019 --dataset_folder /path_to/dataset_folder/ --packets_per_flow 10 --dataset_id DOS2019 --traffic_type all --time_window 10
@@ -135,8 +135,8 @@ The final global model and the log of the training process are saved in ```h5```
 The experiments presented in the aforementioned FLAD paper can be reproduced by executing the commands listed below.
 
 #### Convergence analysis
-In this test, we compare FLAD against FedAvg and FLDDoS in terms of convergence time and accuracy of the global model. For the experiments in the paper, the test has been repeated 10 time, each time with a different seed (option ```-rn_seed```).
-First, execute with the ```flad_main.py``` script with option ```-t flad``` (FLAD settings) and specifying a random seed with option ```--rn_seed```. The command to do that is the following:
+In this test, we compare FLAD against FedAvg and FLDDoS in terms of convergence time and accuracy of the global model. For the experiments in the paper, the test has been repeated 10 times, each time with a different seed (option ```-rn_seed```).
+First, execute with the ```flad_main.py``` script with option ```-t flad``` (FLAD settings) and specify a random seed with option ```--rn_seed```. The command to do that is the following:
 ```
 python flad_main.py -c ./Dataset/CIC-DDoS2019 -t flad -o log/full-training/flad/test_seed0 --rn_seed 0
 ```
