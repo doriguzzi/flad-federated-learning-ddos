@@ -106,11 +106,16 @@ FLAD's main script is ```flad_main.py```. The script implements a range of tests
 ### The training process
 
 The federated training process can be started by executing the following command:
+
 ```
 python3 flad_main.py --clients /path_to/client_folders/ 
 ```
 
-where option ```--clients``` (or ```-c```) is used to indicate the folder that contains the clients' local datasets. The folder must be organised in subfolders, one for each client, containing the local training and validation sets in ```.hdf5``` format. The ```sample_clients``` folder contains four sample clients, each with a local dataset comprising benign and attack traffic (one attack type per client). It can be used to test FLAD and to understand how to design more complex scenarios.
+where option ```--clients``` (or ```-c```) is used to indicate the folder that contains the clients' local datasets. The folder must be organised in subfolders, one for each client, containing the local training and validation sets in ```.hdf5``` format. The ```sample_clients``` folder contains four sample clients, each with a local dataset comprising benign and attack traffic (one attack type per client). It can be used to quickly test FLAD in a simple scenario by running:
+
+```
+python3 flad_main.py --clients ./sample_clients/
+```
 
 By default, the script executes the FL procedure using all the FLAD algorithms, including the adaptive selection and tuning of the clients. While the automated mechanism for the selection of clients cannot be disabled, you have the flexibility to specify a fixed number of local epochs and steps/epoch for each client in every round by using one of the following command-line listed below: 
 
