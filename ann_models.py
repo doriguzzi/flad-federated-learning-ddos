@@ -1,4 +1,4 @@
-# Copyright (c) 2023 @ FBK - Fondazione Bruno Kessler
+# Copyright (c) 2026 @ FBK - Fondazione Bruno Kessler
 # Author: Roberto Doriguzzi-Corin
 # Project: FLAD, Adaptive Federated Learning for DDoS Attack Detection
 #
@@ -104,10 +104,9 @@ def FCModel(model_name, input_shape, units, classes=1,dropout=None):
 def init_server(model_type, dataset_name, input_shape, max_flow_len):
     server = {}
     server['name'] = "Server"
-    features = input_shape[1]
 
     if model_type == 'cnn':
-        server['model'] = CNNModel('cnn', input_shape, kernels=KERNELS, kernel_rows=min(3,max_flow_len), kernel_col=features)
+        server['model'] = CNNModel('cnn', input_shape, kernels=KERNELS, kernel_rows=min(3,max_flow_len), kernel_col=input_shape[1])
     elif model_type == 'mlp':
         server['model'] = FCModel('mlp', input_shape, units=MLP_UNITS)
     elif model_type is not None:
@@ -135,8 +134,7 @@ def init_client(subfolder, X_train, Y_train, X_val, Y_val, dataset_name, time_wi
     client['validation'] = (X_val_tensor,Y_val)
     client['samples'] = client['training'][1].shape[0]
     client['dataset_name'] = dataset_name
-    client['input_shape'] = client['training'][0].shape[1:4]
-    client['features'] = client['training'][0].shape[2]
+    client['input_shape'] = client['training'][0].shape[1:]
     client['classes'] =  np.unique(Y_train)
     client['time_window'] = time_window
     client['max_flow_len'] = max_flow_len
@@ -158,13 +156,11 @@ def reset_client(client):
 
 def check_clients(clients):
     input_shape = clients[0]['input_shape']
-    features = clients[0]['features']
     classes = clients[0]['classes']
     time_window = clients[0]['time_window']
     max_flow_len = clients[0]['max_flow_len']
     for client in clients:
         if input_shape != client['input_shape'] or \
-            features != client['features'] or \
             classes.all() != client['classes'].all() or \
             time_window != client['time_window'] or \
             max_flow_len != client['max_flow_len']:

@@ -1,4 +1,4 @@
-# Copyright (c) 2023 @ FBK - Fondazione Bruno Kessler
+# Copyright (c) 2026 @ FBK - Fondazione Bruno Kessler
 # Author: Roberto Doriguzzi-Corin
 # Project: FLAD, Adaptive Federated Learning for DDoS Attack Detection
 #
@@ -26,10 +26,13 @@ import random as rn
 def load_dataset(path):
     filename = glob.glob(path)[0]
     dataset = h5py.File(filename, "r")
-    set_x_orig = np.array(dataset["set_x"][:])  # features
+    set_x_orig = np.array(dataset["set_x"][:])  # features-
     set_y_orig = np.array(dataset["set_y"][:])  # labels
 
-    X_train = np.reshape(set_x_orig, (set_x_orig.shape[0], set_x_orig.shape[1], set_x_orig.shape[2], 1))
+    if len(set_x_orig.shape) == 3: # array-like data with no channels
+        X_train = np.reshape(set_x_orig, (set_x_orig.shape[0], set_x_orig.shape[1], set_x_orig.shape[2], 1))
+    else:
+        X_train = set_x_orig
     Y_train = set_y_orig#.reshape((1, set_y_orig.shape[0]))
 
     return X_train, Y_train
