@@ -293,10 +293,10 @@ def update_client_training_parameters(clients, parameter, value, max_value, min_
 
 # FedAvg, with the additional option for averaging without weighting with the number of local samples
 def aggregation_weighted_sum(server, clients,weighted=True):
-    total = 0
+    total = 0.0
 
     aggregated_model = clone_model(server['model'])
-    aggregated_weights = aggregated_model.get_weights()
+    aggregated_weights = server['model'].get_weights()
     aggregated_weights_list = []
 
     for weights in aggregated_weights:
@@ -315,8 +315,7 @@ def aggregation_weighted_sum(server, clients,weighted=True):
         for weight_index in range(weights_list_size):
             aggregated_weights_list[weight_index] += client_weights[weight_index] * avg_weight
 
-    aggregated_weights_list[:] = [(aggregated_weights_list[i] / total) for i in
-                             range(len(aggregated_weights_list))]
+    aggregated_weights_list = [w / total for w in aggregated_weights_list]
     aggregated_model.set_weights(aggregated_weights_list)
 
     return aggregated_model

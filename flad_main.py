@@ -40,7 +40,7 @@ def main(argv):
     parser.add_argument('-s', '--steps_per_epoch', nargs='?', type=int, default=None,
                         help='Steps of gradient descent taken at each epoch (default: None, which means adaptive)')
 
-    parser.add_argument('-O', '--optimizer', type=str, default="SGD", choices=['SGD', 'Adam'],
+    parser.add_argument('-O', '--optimizer', type=str, default="Adam", choices=['SGD', 'Adam'],
                         help='Optimizer (SGD, Adam)')
     
     parser.add_argument('-S', '--rn_seed', nargs='?', type=int, default=0,
