@@ -42,7 +42,7 @@ MAX_STEPS = 1000
 
 def compileModel(model, optimizer_type="SGD",loss='binary_crossentropy'):
     if optimizer_type == "Adam":
-        optimizer = Adam(learning_rate=0.01, beta_1=0.9, beta_2=0.999, epsilon=None, amsgrad=False)
+        optimizer = Adam(learning_rate=0.01, beta_1=0.9, beta_2=0.999)
     else:
         optimizer = SGD(learning_rate=0.1, momentum=0.0, nesterov=False)
 
