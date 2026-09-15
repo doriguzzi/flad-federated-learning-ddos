@@ -139,6 +139,9 @@ Volume 137, 2024, doi: 10.1016/j.cose.2023.103597
 
 This work has been partially supported by the European Union's Horizon Europe Programme under grant agreement No 101070473 (project FLUIDOS). 
 
+## Collaborations
+FLAD is also available as a baseline implementation for [Flower](https://github.com/flwrlabs/flower/tree/main), an open-source framework for building federated AI systems.
+
 
 ## License
 
