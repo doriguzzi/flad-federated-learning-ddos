@@ -32,7 +32,7 @@ K.set_image_data_format('channels_last')
 # disable GPUs for test reproducibility
 tf.config.set_visible_devices([], 'GPU')
 
-KERNELS = 256
+KERNELS = 32
 MLP_UNITS = 32
 
 MIN_EPOCHS = 1
