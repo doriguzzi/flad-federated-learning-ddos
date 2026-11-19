@@ -36,11 +36,14 @@ def main(argv):
 
     parser.add_argument('-o', '--output_folder', nargs='?', type=str, default=None,
                         help='Folder which stores the training/testing results (default: ./log ')
+
+    parser.add_argument('-r', '--rounds', default=MAX_FL_ROUNDS, type=int,
+                        help='Federated training iterations')
     
     parser.add_argument('-s', '--steps_per_epoch', nargs='?', type=int, default=None,
                         help='Steps of gradient descent taken at each epoch (default: None, which means adaptive)')
 
-    parser.add_argument('-O', '--optimizer', type=str, default="Adam", choices=['SGD', 'Adam'],
+    parser.add_argument('-O', '--optimizer', type=str, default="SGD", choices=['SGD', 'Adam'],
                         help='Optimizer (SGD, Adam)')
     
     parser.add_argument('-S', '--rn_seed', nargs='?', type=int, default=0,
@@ -101,7 +104,7 @@ def main(argv):
 
         # full FL training
         FederatedTrain(clients, args.model, output_folder, time_window, max_flow_len, dataset_name,
-                        epochs=epochs, steps=steps, training_mode='flad', weighted=False,
+                        epochs=epochs, steps=steps, training_mode='flad', max_rounds = args.rounds, weighted=False,
                         optimizer=args.optimizer, nr_experiments=EXPERIMENTS)
 
 if __name__ == "__main__":

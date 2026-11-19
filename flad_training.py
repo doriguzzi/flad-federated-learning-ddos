@@ -29,6 +29,7 @@ EXPERIMENTS = 10
 
 # FL hyper-parameters
 PATIENCE = 25
+MAX_FL_ROUNDS = 100 # Maximum number of federated training rounds
 CLIENT_FRACTION = 0.8 # Fraction of clients selected at each round for FedAvg-based approaches
 
 def trainClientModel(model, epochs, X_train, Y_train,X_val, Y_val, steps_per_epoch=None):
@@ -47,7 +48,7 @@ def trainClientModel(model, epochs, X_train, Y_train,X_val, Y_val, steps_per_epo
     return model, loss_train, loss_val, tp1-tp0
 
 # Federated training procedure
-def  FederatedTrain(clients, model_type, outdir, time_window, max_flow_len, dataset_name, epochs='auto', steps='auto', training_mode = 'flad', weighted=False,optimizer='SGD',nr_experiments=EXPERIMENTS):
+def  FederatedTrain(clients, model_type, outdir, time_window, max_flow_len, dataset_name, epochs='auto', steps='auto', training_mode = 'flad', max_rounds = MAX_FL_ROUNDS, weighted=False,optimizer='SGD',nr_experiments=EXPERIMENTS):
 
     round_fieldnames = ['Model', 'Round', 'AvgF1']
     tuning_fieldnames = ['Model', 'Epochs', 'Steps', 'Mode', 'Weighted', 'Experiment', 'ClientsOrder','Round', 'TotalClientRounds', 'F1','F1_std','Time(sec)']
@@ -165,13 +166,13 @@ def  FederatedTrain(clients, model_type, outdir, time_window, max_flow_len, data
         hyperparamters_tuning_file.flush()
 
         # early stopping procedure
-        stop = True if stop_counter > PATIENCE else False
-
+        stop = True if (stop_counter > PATIENCE or total_rounds >= max_rounds) else False
+ 
         if stop == True:
             # once we have trained with all the clients, we save the best model and we compute the f1_val
             # with the best model obtained with all the clients. We also close the training stats file and
             # we save the final results obtained with a given set of hyper-parameters
-            best_model_file_name = str(time_window) + 't-' + str(max_flow_len) + 'n-' + model_name + '-global-model.h5'
+            best_model_file_name = str(time_window) + 't-' + str(max_flow_len) + 'n-' + model_name + '-global-model.keras'
             best_model.save(outdir + '/' + best_model_file_name)
             break
 
@@ -181,8 +182,8 @@ def  FederatedTrain(clients, model_type, outdir, time_window, max_flow_len, data
     hyperparamters_tuning_file.close()
 
 # We evaluate the aggregated model on the clients validation sets
-# in a real scenario, the server would send back the aggregated model to the clients, which evaluate it on their local validation data
-# as a final step, the clients would send the resulting f1 score to the server for analysis (such as the weighted avaerage below)
+# In a real scenario, the server would send back the aggregated model to the clients, which evaluate it on their local validation data
+# As a final step, the clients would send the resulting f1 score to the server for analysis (such as the weighted average below)
 def select_clients(server_model, clients, training_mode):
     average_f1, std_dev_f1 = assess_server_model(server_model, clients,update_clients=True, print_f1=True)
 
