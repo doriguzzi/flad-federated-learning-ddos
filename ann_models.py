@@ -21,7 +21,7 @@ import tensorflow as tf
 config = tf.compat.v1.ConfigProto(inter_op_parallelism_threads=1)
 from tensorflow.keras.optimizers import Adam,SGD
 from tensorflow.keras.layers import Input, Dense, Activation,  Flatten, Conv2D
-from tensorflow.keras.layers import MaxPooling2D, Dropout
+from tensorflow.keras.layers import GlobalMaxPooling2D, Dropout
 from tensorflow.keras.models import Model, Sequential, save_model, load_model, clone_model
 import tensorflow.keras.backend as K
 from tensorflow.keras.utils import plot_model, to_categorical
@@ -49,7 +49,7 @@ def compileModel(model, optimizer_type="SGD",loss='binary_crossentropy'):
     model.compile(loss=loss, optimizer=optimizer,metrics=['accuracy'])
 
 # Convolutional NN
-def CNNModel(model_name, input_shape,kernels,kernel_rows,kernel_col,classes=1, pool_height='max',regularization=None,dropout=None):
+def CNNModel(model_name, input_shape,kernels,kernel_rows,kernel_col,classes=1,regularization=None,dropout=None):
     K.clear_session()
 
     model = Sequential(name=model_name)
@@ -62,21 +62,8 @@ def CNNModel(model_name, input_shape,kernels,kernel_rows,kernel_col,classes=1, p
     if dropout != None and type(dropout) == float:
         model.add(Dropout(dropout))
     model.add(Activation('relu'))
-    current_shape = model.layers[0].output_shape
-    current_rows = current_shape[1]
-    current_cols = current_shape[2]
-    current_channels = current_shape[3]
 
-    # height of the pooling region
-    if pool_height == 'min':
-        pool_height = 3
-    elif pool_height == 'max':
-        pool_height = current_rows
-    else:
-        pool_height = 3
-
-    pool_size = (min(pool_height, current_rows), min(3, current_cols))
-    model.add(MaxPooling2D(pool_size=pool_size, name='mp0'))
+    model.add(GlobalMaxPooling2D(name='gmp0'))
     model.add(Flatten())
     model.add(Dense(classes, activation='sigmoid', name='fc1'))
 
