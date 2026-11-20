@@ -32,7 +32,7 @@ K.set_image_data_format('channels_last')
 # disable GPUs for test reproducibility
 tf.config.set_visible_devices([], 'GPU')
 
-KERNELS = 32
+KERNELS = 64
 MLP_UNITS = 32
 
 MIN_EPOCHS = 1
@@ -58,7 +58,8 @@ def CNNModel(model_name, input_shape,kernels,kernel_rows,kernel_col,classes=1,re
     else:
         regularizer = None
 
-    model.add(Conv2D(kernels, (kernel_rows,kernel_col), strides=(1, 1), input_shape=input_shape, kernel_regularizer=regularizer, name='conv0'))
+    model.add(Input(shape=input_shape, name='input'))
+    model.add(Conv2D(kernels, (kernel_rows,kernel_col), strides=(1, 1), kernel_regularizer=regularizer, name='conv0'))
     if dropout != None and type(dropout) == float:
         model.add(Dropout(dropout))
     model.add(Activation('relu'))
@@ -76,7 +77,8 @@ def FCModel(model_name, input_shape, units, classes=1,dropout=None):
 
     model = Sequential(name=model_name)
 
-    model.add(Flatten(input_shape=input_shape))
+    model.add(Input(shape=input_shape, name='input'))
+    model.add(Flatten())
     model.add(Dense(units, activation='relu', name='fc0'))
     if dropout != None and type(dropout) == float:
         model.add(Dropout(dropout))

@@ -29,7 +29,6 @@ EXPERIMENTS = 10
 
 # FL hyper-parameters
 PATIENCE = 25
-MAX_FL_ROUNDS = 100 # Maximum number of federated training rounds
 CLIENT_FRACTION = 0.8 # Fraction of clients selected at each round for FedAvg-based approaches
 
 def trainClientModel(model, epochs, X_train, Y_train,X_val, Y_val, steps_per_epoch=None):
@@ -48,7 +47,7 @@ def trainClientModel(model, epochs, X_train, Y_train,X_val, Y_val, steps_per_epo
     return model, loss_train, loss_val, tp1-tp0
 
 # Federated training procedure
-def  FederatedTrain(clients, model_type, outdir, time_window, max_flow_len, dataset_name, epochs='auto', steps='auto', training_mode = 'flad', max_rounds = MAX_FL_ROUNDS, weighted=False,optimizer='SGD',nr_experiments=EXPERIMENTS):
+def  FederatedTrain(clients, model_type, outdir, time_window, max_flow_len, dataset_name, epochs='auto', steps='auto', training_mode = 'flad', max_rounds = None, weighted=False,optimizer='SGD',nr_experiments=EXPERIMENTS):
 
     round_fieldnames = ['Model', 'Round', 'AvgF1']
     tuning_fieldnames = ['Model', 'Epochs', 'Steps', 'Mode', 'Weighted', 'Experiment', 'ClientsOrder','Round', 'TotalClientRounds', 'F1','F1_std','Time(sec)']
@@ -165,8 +164,8 @@ def  FederatedTrain(clients, model_type, outdir, time_window, max_flow_len, data
         tuning_writer.writerow(row)
         hyperparamters_tuning_file.flush()
 
-        # early stopping procedure
-        stop = True if (stop_counter > PATIENCE or total_rounds >= max_rounds) else False
+        # stopping procedure
+        stop = True if max_rounds != None and total_rounds >= max_rounds else (True if max_rounds == None and stop_counter > PATIENCE else False)
  
         if stop == True:
             # once we have trained with all the clients, we save the best model and we compute the f1_val

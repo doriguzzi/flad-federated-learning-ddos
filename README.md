@@ -125,6 +125,7 @@ By default, the script executes the FL procedure using all the FLAD algorithms, 
 - ```-s```, ```--steps_per_epoch```: number of local MBGD steps/epoch performed by clients at every round of federated training (default: ```None```, which means adaptive).
 - ```-m```, ```--model```: Load a model from disk (path to a ```hd5``` file) or use a predefined NN architecture (```mlp``` (default) and ```cnn``` are possible options).
 - ```-O```, ```--optimizer```: Optimizer used by clients to train the global model (options are SGD and Adam).
+- ```-r```, ```--rounds```: Number of rounds of federated training. When set, the *patience*-based mechanism is disabled and the training process stops after the specified number of rounds.
 - ```-S```, ```--rn_seed```: Seed for the pseudo-number generators of various libraries used in the code, such as: Tensorflow, Numpy, Scikit-learn, etc.).
 
 The final global model and the log of the training process are saved in ```h5``` and ```csv``` format respectively in the folder specified with the option ```--output_folder```, or within a subfolder of folder ```./log```, if ```--output_folder``` is not used.

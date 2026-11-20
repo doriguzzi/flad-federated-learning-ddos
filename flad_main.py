@@ -37,7 +37,7 @@ def main(argv):
     parser.add_argument('-o', '--output_folder', nargs='?', type=str, default=None,
                         help='Folder which stores the training/testing results (default: ./log ')
 
-    parser.add_argument('-r', '--rounds', default=MAX_FL_ROUNDS, type=int,
+    parser.add_argument('-r', '--rounds', default=None, type=int,
                         help='Federated training iterations')
     
     parser.add_argument('-s', '--steps_per_epoch', nargs='?', type=int, default=None,
